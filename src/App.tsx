@@ -114,7 +114,7 @@ export default function App() {
   const [winH, setWinH] = useState(() => window.innerHeight);
 
   const lang = useMemo(
-    () => resolveLang((settings?.language ?? "auto") as LangSetting),
+    () => resolveLang((settings?.language ?? "en") as LangSetting),
     [settings?.language],
   );
   const i18n = useMemo(() => ({ lang, t: makeT(lang) }), [lang]);

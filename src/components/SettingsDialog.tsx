@@ -37,9 +37,9 @@ export function SettingsDialog({
               value={settings.language}
               onChange={(e) => set("language", e.target.value as Settings["language"])}
             >
-              <option value="auto">{t("set.auto")}</option>
               <option value="en">English</option>
               <option value="ja">日本語</option>
+              <option value="auto">{t("set.auto")}</option>
             </select>
           </Row>
 

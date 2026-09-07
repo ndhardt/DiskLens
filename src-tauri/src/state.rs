@@ -29,7 +29,7 @@ pub enum SizeBasis {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
-    /// "auto", "en" or "ja". "auto" follows the system language.
+    /// "en", "ja" or "auto". "auto" follows the system language.
     pub language: String,
     pub size_basis: SizeBasis,
     pub group_bundles: bool,
@@ -45,7 +45,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Settings {
-            language: "auto".into(),
+            language: "en".into(),
             size_basis: SizeBasis::Allocated,
             group_bundles: true,
             follow_symlinks: false,
@@ -554,7 +554,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
 
         // Nothing written yet: fall back to the defaults.
-        assert_eq!(load_settings(&dir).language, "auto");
+        assert_eq!(load_settings(&dir).language, "en");
 
         let s = Settings {
             language: "ja".into(),
@@ -569,14 +569,14 @@ mod tests {
         assert_eq!(back.size_basis, SizeBasis::Allocated);
 
         // A file written by an older build, missing most keys, must still load.
-        std::fs::write(dir.join("settings.json"), r#"{"language":"en"}"#).unwrap();
+        std::fs::write(dir.join("settings.json"), r#"{"language":"ja"}"#).unwrap();
         let partial = load_settings(&dir);
-        assert_eq!(partial.language, "en");
+        assert_eq!(partial.language, "ja");
         assert!(partial.group_bundles, "missing keys fall back to the default");
 
         // Corrupt input must not panic or wipe the app's ability to start.
         std::fs::write(dir.join("settings.json"), "{not json").unwrap();
-        assert_eq!(load_settings(&dir).language, "auto");
+        assert_eq!(load_settings(&dir).language, "en");
 
         let _ = std::fs::remove_dir_all(&dir);
     }

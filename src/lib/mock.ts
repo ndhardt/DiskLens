@@ -559,7 +559,7 @@ function buildTreemap(dirId: number, w: number, h: number, budget: number): Tree
 
 // ------------------------------------------------------------------ facade
 let settings: Settings = {
-  language: "auto",
+  language: "en",
   sizeBasis: "allocated",
   groupBundles: true,
   followSymlinks: false,
