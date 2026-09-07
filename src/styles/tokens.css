@@ -1,0 +1,62 @@
+/* Design tokens. Dark is the only mode: this is a tool, not a document. */
+:root {
+  --bg-root: #090b10;
+  --bg-panel: #10131a;
+  --bg-panel-secondary: #151922;
+  --bg-hover: #1b2130;
+  --bg-selected: #25324a;
+  --bg-selected-inactive: #1d2432;
+
+  --border: rgba(255, 255, 255, 0.075);
+  --border-strong: rgba(255, 255, 255, 0.13);
+
+  --text-primary: rgba(255, 255, 255, 0.92);
+  --text-secondary: rgba(255, 255, 255, 0.61);
+  --text-muted: rgba(255, 255, 255, 0.38);
+  --text-faint: rgba(255, 255, 255, 0.22);
+
+  --accent: linear-gradient(90deg, #6377ff 0%, #9b6cff 55%, #dc6bcb 100%);
+  --accent-solid: #6377ff;
+  --accent-soft: rgba(99, 119, 255, 0.16);
+  --usage-fill: linear-gradient(90deg, #6377ff, #a66bff);
+  --usage-track: rgba(255, 255, 255, 0.07);
+
+  /* Idle-age scale. Desaturated on purpose: this is information, not an alarm. */
+  --age-fresh: #e4e7ef;
+  --age-week: #9aa2b2;
+  --age-month: #7d8fac;
+  --age-quarter: #b3a06a;
+  --age-half: #bd8a63;
+  --age-year: #bd7970;
+  --age-ancient: #c9645a;
+
+  /* Treemap categories */
+  --cat-video: #6678ff;
+  --cat-image: #a76bff;
+  --cat-audio: #df70c6;
+  --cat-archive: #ef8277;
+  --cat-ai: #5cc6b2;
+  --cat-document: #71a7f4;
+  --cat-code: #77c989;
+  --cat-system: #69717d;
+  --cat-other: #8e8e98;
+
+  --row-h: 25px;
+  --row-h-lg: 34px;
+  --head-h: 28px;
+  --head-h-lg: 30px;
+
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue",
+    "Hiragino Sans", "Noto Sans JP", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+
+  --fs-table: 12.5px;
+  --fs-ui: 13px;
+  --fs-small: 11px;
+  --fs-stat: 17px;
+
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --t-hover: 90ms;
+  --t-select: 110ms;
+  --t-popup: 140ms;
+}
