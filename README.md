@@ -143,6 +143,41 @@ untouched, because those are the two facts that decide it.
 
 ---
 
+## Type and surface
+
+The interface is set in [Monaspace](https://monaspace.githubnext.com) —
+**Neon** for everything, **Krypton** for column headers and the small
+structural labels. Both are bundled as variable `woff2` (SIL OFL 1.1, license
+in `src/assets/fonts/`), so the app has no network dependency and no font
+flash. Japanese and other CJK text falls through to the system face, which is
+the one place the grid gives.
+
+A monospace face is not decoration here. Every size, percentage, date and count
+in this app is a number in a column, and monospace makes those columns line up
+without any tabular-figures coaxing. `2026-09-05 11:59` is also narrower than
+`Sep 5, 2026, 11:59`, which is why dates are ISO throughout: same width every
+row, sorts the way it reads. Texture healing is on (`calt`), coding ligatures
+are off — a file called `a!=b.txt` has to stay `a!=b.txt`.
+
+The surface is deliberately plain:
+
+- **No gradients.** Not on the drive bar, the buttons, the tab underline, the
+  size bars, the Treemap, or the window background. Colour is flat, and it is
+  spent on meaning — file category, idle age — rather than on decoration.
+- **No glass.** Popovers and dialogs are solid fills with a one-pixel border
+  and a tight shadow. Nothing blurs what is behind it.
+- **Linear motion, or none.** Every transition is `linear` and 90–120 ms. The
+  progress bar advances at the scan's pace because that is what it is
+  reporting; easing would make it lie about its own speed. Nothing scales,
+  bounces, or fades in from below.
+- Corners are 3–5 px, and tables have none.
+
+The Treemap is flat fills with a one-pixel edge and a slight darkening per
+nesting level. Label colour flips to black or white based on the fill's
+luminance, so a name is legible on both a pale green and a dark indigo.
+
+---
+
 ## Layout
 
 At 1440 × 900 the window divides exactly:
@@ -191,6 +226,41 @@ size:>5GB unused:>6m
 
 ---
 
+## Type and surface
+
+The interface is set in [Monaspace](https://monaspace.githubnext.com) —
+**Neon** for everything, **Krypton** for column headers and the small
+structural labels. Both are bundled as variable `woff2` (SIL OFL 1.1, license
+in `src/assets/fonts/`), so the app has no network dependency and no font
+flash. Japanese and other CJK text falls through to the system face, which is
+the one place the grid gives.
+
+A monospace face is not decoration here. Every size, percentage, date and count
+in this app is a number in a column, and monospace makes those columns line up
+without any tabular-figures coaxing. `2026-09-05 11:59` is also narrower than
+`Sep 5, 2026, 11:59`, which is why dates are ISO throughout: same width every
+row, sorts the way it reads. Texture healing is on (`calt`), coding ligatures
+are off — a file called `a!=b.txt` has to stay `a!=b.txt`.
+
+The surface is deliberately plain:
+
+- **No gradients.** Not on the drive bar, the buttons, the tab underline, the
+  size bars, the Treemap, or the window background. Colour is flat, and it is
+  spent on meaning — file category, idle age — rather than on decoration.
+- **No glass.** Popovers and dialogs are solid fills with a one-pixel border
+  and a tight shadow. Nothing blurs what is behind it.
+- **Linear motion, or none.** Every transition is `linear` and 90–120 ms. The
+  progress bar advances at the scan's pace because that is what it is
+  reporting; easing would make it lie about its own speed. Nothing scales,
+  bounces, or fades in from below.
+- Corners are 3–5 px, and tables have none.
+
+The Treemap is flat fills with a one-pixel edge and a slight darkening per
+nesting level. Label colour flips to black or white based on the fill's
+luminance, so a name is legible on both a pale green and a dark indigo.
+
+---
+
 ## Layout of the source
 
 ```
@@ -211,4 +281,5 @@ src/
 
 ## Licence
 
-MIT.
+MIT, except the bundled fonts: Monaspace is © GitHub, SIL Open Font License
+1.1, and its licence travels with it in `src/assets/fonts/`.

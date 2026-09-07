@@ -1,6 +1,6 @@
 import { useMemo, useRef } from "react";
 import { fitColumns, type ColumnDef } from "../../lib/columns";
-import { bytes, CATEGORY_COLOR, count } from "../../lib/format";
+import { bytes, CATEGORY_COLOR, count, dateOnly } from "../../lib/format";
 import { useElementSize, usePagedRows } from "../../lib/hooks";
 import { api } from "../../lib/api";
 import type { TreeRow, TreeSort, TreeSortKey } from "../../lib/types";
@@ -242,7 +242,7 @@ function TreeRowView({
                 key={c.key}
                 style={{ width: c.width, flexBasis: c.width }}
               >
-                {row.lastUsed ? new Date(row.lastUsed * 1000).toLocaleDateString("en-CA") : "—"}
+                {dateOnly(row.lastUsed)}
               </div>
             );
           case "unused":

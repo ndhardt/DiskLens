@@ -63,15 +63,6 @@ export function unusedLong(lastUsed: number | null, now = Date.now() / 1000): st
   }`;
 }
 
-const DATE_FMT = new Intl.DateTimeFormat("en-US", {
-  year: "numeric",
-  month: "short",
-  day: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-});
-
 const DATE_LONG = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
   month: "long",
@@ -81,9 +72,27 @@ const DATE_LONG = new Intl.DateTimeFormat("en-US", {
   hour12: false,
 });
 
+/**
+ * `2026-09-05 11:47`.
+ *
+ * Every date is the same width in a monospace face, so the column lines up and
+ * sorts the way it reads. A localised "Sep 5, 2026" does neither.
+ */
 export function dateTime(t: number | null): string {
   if (t == null) return "—";
-  return DATE_FMT.format(new Date(t * 1000));
+  const d = new Date(t * 1000);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(
+    d.getHours(),
+  )}:${p(d.getMinutes())}`;
+}
+
+/** Date only, for the tree's coarser column. */
+export function dateOnly(t: number | null): string {
+  if (t == null) return "—";
+  const d = new Date(t * 1000);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
 export function dateTimeLong(t: number | null): string {

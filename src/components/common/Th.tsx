@@ -1,3 +1,11 @@
+function Arrow({ dir }: { dir: "asc" | "desc" }) {
+  return (
+    <svg width="7" height="4" viewBox="0 0 7 4" className="th__arrow" aria-hidden>
+      <path d={dir === "desc" ? "M0 0h7L3.5 4z" : "M0 4h7L3.5 0z"} fill="currentColor" />
+    </svg>
+  );
+}
+
 interface Props {
   label: string;
   width?: number;
@@ -25,9 +33,9 @@ export function Th({ label, width, flex, num, sorted, onClick, title }: Props) {
       title={title ?? label}
       role="columnheader"
     >
-      {num && sorted ? <span className="th__arrow">{sorted === "desc" ? "▼" : "▲"}</span> : null}
+      {num && sorted ? <Arrow dir={sorted} /> : null}
       <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
-      {!num && sorted ? <span className="th__arrow">{sorted === "desc" ? "▼" : "▲"}</span> : null}
+      {!num && sorted ? <Arrow dir={sorted} /> : null}
     </div>
   );
 }

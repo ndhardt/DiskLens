@@ -67,6 +67,15 @@ export function Treemap({
   }, [size.width, height, rootDir, generation]);
 
   // ---- offscreen render --------------------------------------------------
+  const [fontsReady, setFontsReady] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    document.fonts.ready.then(() => alive && setFontsReady(true));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   useLayoutEffect(() => {
     const dpr = Math.min(3, window.devicePixelRatio || 1);
     const w = Math.max(1, Math.round(size.width * dpr));
@@ -80,7 +89,7 @@ export function Treemap({
     ctx.scale(dpr, dpr);
     paint(ctx, layout, size.width, height);
     blit();
-  }, [layout, size.width, height]);
+  }, [layout, size.width, height, fontsReady]);
 
   const blit = useEvent(() => {
     const canvas = canvasRef.current;
@@ -289,8 +298,7 @@ function paint(
   if (!layout) return;
 
   ctx.textBaseline = "middle";
-  ctx.font =
-    '10px -apple-system, BlinkMacSystemFont, "SF Pro Text", "Hiragino Sans", sans-serif';
+  ctx.font = '10px "Monaspace Neon", "Hiragino Sans", sans-serif';
 
   for (const r of layout.rects) {
     if (r.w < 1 || r.h < 1) continue;
@@ -306,25 +314,16 @@ function paint(
       continue;
     }
 
-    const area = r.w * r.h;
-    if (area > 260) {
-      // A real cushion for the blocks big enough to notice it.
-      const g = ctx.createLinearGradient(r.x, r.y, r.x + r.w, r.y + r.h);
-      g.addColorStop(0, shade(base, 0.3));
-      g.addColorStop(0.55, base);
-      g.addColorStop(1, shade(base, -0.34));
-      ctx.fillStyle = g;
-    } else {
-      ctx.fillStyle = base;
-    }
+    // Flat fill, stepped slightly darker with depth so nesting still reads.
+    const fill = r.depth > 0 ? shade(base, -0.06 * Math.min(r.depth, 4)) : base;
+    ctx.fillStyle = fill;
     ctx.fillRect(r.x, r.y, r.w, r.h);
 
-    // Cheap bevel: light along the top/left, dark along the bottom/right.
-    if (r.w > 3 && r.h > 3) {
-      ctx.fillStyle = "rgba(255,255,255,0.20)";
+    // A one-pixel edge, not a cushion: enough to separate neighbours.
+    if (r.w > 2 && r.h > 2) {
+      ctx.fillStyle = "rgba(255,255,255,0.13)";
       ctx.fillRect(r.x, r.y, r.w, 1);
-      ctx.fillRect(r.x, r.y, 1, r.h);
-      ctx.fillStyle = "rgba(0,0,0,0.34)";
+      ctx.fillStyle = "rgba(0,0,0,0.30)";
       ctx.fillRect(r.x, r.y + r.h - 1, r.w, 1);
       ctx.fillRect(r.x + r.w - 1, r.y, 1, r.h);
     }
@@ -334,13 +333,24 @@ function paint(
       ctx.beginPath();
       ctx.rect(r.x + 3, r.y + 1, r.w - 6, r.h - 2);
       ctx.clip();
-      ctx.fillStyle = "rgba(0,0,0,0.62)";
-      ctx.fillText(r.name, r.x + 5, r.y + r.h / 2 + 0.5);
-      ctx.fillStyle = "rgba(255,255,255,0.94)";
-      ctx.fillText(r.name, r.x + 4, r.y + r.h / 2 - 0.5);
+      ctx.fillStyle = isLight(fill) ? "rgba(0,0,0,0.78)" : "rgba(255,255,255,0.95)";
+      ctx.fillText(r.name, r.x + 5, r.y + r.h / 2);
       ctx.restore();
     }
   }
+}
+
+/** Would black text read on this fill? Rec. 709 luma. */
+function isLight(color: string): boolean {
+  const m = /rgb\((\d+),(\d+),(\d+)\)/.exec(color);
+  const [r, g, b] = m
+    ? [Number(m[1]), Number(m[2]), Number(m[3])]
+    : [
+        parseInt(color.slice(1, 3), 16),
+        parseInt(color.slice(3, 5), 16),
+        parseInt(color.slice(5, 7), 16),
+      ];
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 150;
 }
 
 /** Lighten (`amount > 0`) or darken a hex colour. */

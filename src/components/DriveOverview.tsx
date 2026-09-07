@@ -69,8 +69,10 @@ export function DriveOverview({ volume, summary, progress }: Props) {
       </div>
 
       <div className="drive__bar">
-        <div className="drive__bar-fill" style={{ width: `${Math.min(100, fill)}%` }} />
-        {scanning && <div className="drive__bar-scan" />}
+        <div
+          className={scanning ? "drive__bar-fill drive__bar-fill--scanning" : "drive__bar-fill"}
+          style={{ width: `${Math.min(100, fill)}%` }}
+        />
       </div>
     </div>
   );

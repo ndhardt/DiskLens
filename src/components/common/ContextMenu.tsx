@@ -17,7 +17,7 @@ export interface MenuState {
 
 export function ContextMenu({ state, onClose }: { state: MenuState; onClose: () => void }) {
   const ref = useDismiss(true, onClose);
-  const width = 224;
+  const width = 268;
   const height = state.actions.length * 26 + 20;
   const left = Math.min(state.x, window.innerWidth - width - 8);
   const top = Math.min(state.y, window.innerHeight - height - 8);
@@ -32,13 +32,13 @@ export function ContextMenu({ state, onClose }: { state: MenuState; onClose: () 
             key={a.label}
             className={a.danger ? "menu-item menu-item--danger" : "menu-item"}
             disabled={a.disabled}
-            title={a.title}
+            title={a.title ?? a.label}
             onClick={() => {
               onClose();
               a.onPick();
             }}
           >
-            {a.label}
+            <span className="menu-item__label">{a.label}</span>
             {a.shortcut && <span className="menu-item__key">{a.shortcut}</span>}
           </button>
         ),

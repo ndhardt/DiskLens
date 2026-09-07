@@ -14,6 +14,9 @@ body,
 
 body {
   font-family: var(--font-ui);
+  /* Texture healing on; coding ligatures off, so "!=" in a file name stays
+     two characters. */
+  font-feature-settings: "calt" 1, "liga" 0, "dlig" 0;
   font-size: var(--fs-ui);
   color: var(--text-primary);
   background: var(--bg-root);
@@ -24,9 +27,7 @@ body {
 }
 
 #root {
-  background:
-    radial-gradient(circle at 65% -10%, rgba(76, 94, 255, 0.09), transparent 42%),
-    linear-gradient(180deg, #11141b 0%, #090b10 100%);
+  background: var(--bg-root);
 }
 
 button {
@@ -52,7 +53,7 @@ input {
 }
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.14);
-  border-radius: 6px;
+  border-radius: var(--r-md);
   border: 3px solid transparent;
   background-clip: content-box;
 }
@@ -95,7 +96,7 @@ input {
   gap: 8px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.022), transparent);
+  background: var(--bg-panel);
   -webkit-app-region: drag;
 }
 
@@ -120,12 +121,12 @@ input {
   gap: 6px;
   padding: 0 10px;
   border: 1px solid var(--border-strong);
-  border-radius: 6px;
+  border-radius: var(--r-md);
   background: var(--bg-panel-secondary);
   color: var(--text-primary);
   font-size: var(--fs-ui);
   white-space: nowrap;
-  transition: background var(--t-hover) var(--ease), border-color var(--t-hover) var(--ease);
+  transition: background var(--t-hover) linear, border-color var(--t-hover) linear;
 }
 .ctl:hover:not(:disabled) {
   background: var(--bg-hover);
@@ -146,13 +147,17 @@ input {
 .ctl--primary {
   width: 72px;
   justify-content: center;
-  border-color: rgba(120, 135, 255, 0.42);
-  background: linear-gradient(180deg, rgba(99, 119, 255, 0.26), rgba(99, 119, 255, 0.14));
-  font-weight: 590;
+  border-color: var(--accent-dim);
+  background: #2a3466;
+  color: #dfe4ff;
+  font-weight: 600;
 }
 .ctl--primary:hover:not(:disabled) {
-  background: linear-gradient(180deg, rgba(99, 119, 255, 0.36), rgba(99, 119, 255, 0.2));
-  border-color: rgba(140, 155, 255, 0.6);
+  background: #33407c;
+  border-color: var(--accent);
+}
+.ctl--primary:active:not(:disabled) {
+  background: #232c57;
 }
 .ctl--danger {
   border-color: rgba(230, 120, 110, 0.38);
@@ -191,9 +196,9 @@ input {
   height: 30px;
   padding: 0 8px 0 26px;
   border: 1px solid var(--border-strong);
-  border-radius: 6px;
+  border-radius: var(--r-md);
   background: var(--bg-panel-secondary);
-  transition: border-color var(--t-hover) var(--ease), background var(--t-hover) var(--ease);
+  transition: border-color var(--t-hover) linear, background var(--t-hover) linear;
 }
 .search:focus-within {
   border-color: rgba(120, 135, 255, 0.55);
@@ -248,7 +253,8 @@ input {
   gap: 2px;
 }
 .drive__name {
-  font-size: 15px;
+  font-family: var(--font-label);
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: -0.01em;
   white-space: nowrap;
@@ -270,6 +276,7 @@ input {
   gap: 1px;
 }
 .stat__label {
+  font-family: var(--font-label);
   font-size: 9.5px;
   font-weight: 640;
   letter-spacing: 0.08em;
@@ -277,8 +284,7 @@ input {
 }
 .stat__value {
   font-size: var(--fs-stat);
-  font-weight: 590;
-  letter-spacing: -0.015em;
+  font-weight: 600;
 }
 .stat__value--dim {
   color: var(--text-secondary);
@@ -287,9 +293,8 @@ input {
 
 .drive__pct {
   margin-left: auto;
-  font-size: 22px;
+  font-size: 21px;
   font-weight: 620;
-  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
 .drive__pct span {
@@ -304,35 +309,17 @@ input {
   right: 12px;
   bottom: 8px;
   height: 8px;
-  border-radius: 4px;
   background: var(--usage-track);
   overflow: hidden;
 }
 .drive__bar-fill {
   height: 100%;
-  border-radius: 4px;
-  background: var(--usage-fill);
-  transition: width 320ms var(--ease);
+  background: var(--accent);
+  /* Linear: the bar tracks the scan, so it should move at the scan's pace. */
+  transition: width 200ms linear;
 }
-.drive__bar-scan {
-  position: absolute;
-  inset: 0;
-  border-radius: 4px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.16) 45%,
-    transparent 90%
-  );
-  animation: sweep 1.15s linear infinite;
-}
-@keyframes sweep {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(100%);
-  }
+.drive__bar-fill--scanning {
+  background: var(--accent-dim);
 }
 
 /* -------------------------------------------------------------- mode tabs */
@@ -353,7 +340,7 @@ input {
   padding: 0 13px;
   font-size: var(--fs-ui);
   color: var(--text-secondary);
-  transition: color var(--t-hover) var(--ease);
+  transition: color var(--t-hover) linear;
 }
 .tab:hover {
   color: var(--text-primary);
@@ -369,7 +356,6 @@ input {
   right: 8px;
   bottom: -1px;
   height: 2px;
-  border-radius: 2px 2px 0 0;
   background: var(--accent);
 }
 .tab__count {
@@ -392,7 +378,7 @@ input {
   height: 24px;
   padding: 0 22px 0 8px;
   border: 1px solid var(--border-strong);
-  border-radius: 5px;
+  border-radius: var(--r-sm);
   background: var(--bg-panel) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='rgba(255,255,255,0.45)'/%3E%3C/svg%3E")
     no-repeat right 7px center;
   color: var(--text-primary);
@@ -417,12 +403,12 @@ input {
 .chip {
   height: 24px;
   padding: 0 9px;
-  border-radius: 5px;
+  border-radius: var(--r-sm);
   border: 1px solid transparent;
   color: var(--text-secondary);
   font-size: 12px;
   white-space: nowrap;
-  transition: background var(--t-hover) var(--ease), color var(--t-hover) var(--ease);
+  transition: background var(--t-hover) linear, color var(--t-hover) linear;
 }
 .chip:hover {
   background: var(--bg-hover);
@@ -446,6 +432,7 @@ input {
 }
 
 .pane__caption {
+  font-family: var(--font-label);
   height: 22px;
   flex: 0 0 22px;
   display: flex;
@@ -473,7 +460,7 @@ input {
   flex: 0 0 4px;
   background: var(--border);
   cursor: col-resize;
-  transition: background var(--t-hover) var(--ease);
+  transition: background var(--t-hover) linear;
 }
 .splitter:hover,
 .splitter--active {
@@ -503,8 +490,10 @@ input {
   border-bottom: 1px solid var(--border-strong);
   background: var(--bg-panel-secondary);
   color: var(--text-secondary);
-  font-size: 11.5px;
-  font-weight: 560;
+  font-family: var(--font-label);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   overflow: hidden;
 }
 .table--lg .table__head {
@@ -520,7 +509,7 @@ input {
   white-space: nowrap;
   overflow: hidden;
   flex: 0 0 auto;
-  transition: color var(--t-hover) var(--ease), background var(--t-hover) var(--ease);
+  transition: color var(--t-hover) linear, background var(--t-hover) linear;
 }
 .th:hover {
   color: var(--text-primary);
@@ -537,9 +526,8 @@ input {
   min-width: 60px;
 }
 .th__arrow {
-  font-size: 8px;
-  color: var(--accent-solid);
-  line-height: 1;
+  flex: 0 0 7px;
+  color: var(--accent);
 }
 
 .table__body {
@@ -564,7 +552,7 @@ input {
   align-items: center;
   height: var(--row-h);
   border-bottom: 1px solid rgba(255, 255, 255, 0.028);
-  transition: background var(--t-hover) var(--ease);
+  transition: background var(--t-hover) linear;
   contain: layout paint style;
 }
 .table--lg .row {
@@ -590,8 +578,8 @@ input {
   left: 0;
   top: 0;
   bottom: 0;
-  background: linear-gradient(90deg, #6377ff, #a66bff);
-  opacity: 0.07;
+  background: var(--accent);
+  opacity: 0.08;
   pointer-events: none;
 }
 
@@ -645,7 +633,7 @@ input {
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
-  transition: transform var(--t-hover) var(--ease), color var(--t-hover) var(--ease);
+  transition: transform var(--t-hover) linear, color var(--t-hover) linear;
 }
 .twisty:hover {
   color: var(--text-primary);
@@ -696,9 +684,8 @@ input {
   left: 4px;
   top: 5px;
   bottom: 5px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, #6377ff, #9a69f7);
-  opacity: 0.12;
+  background: var(--accent);
+  opacity: 0.26;
 }
 .pct__num {
   position: relative;
@@ -748,8 +735,7 @@ input {
 }
 .score__fill {
   height: 100%;
-  border-radius: 2px;
-  background: linear-gradient(90deg, #6377ff, #a66bff);
+  background: var(--accent);
 }
 .score__num {
   font-variant-numeric: tabular-nums;
@@ -791,6 +777,7 @@ input {
 }
 
 .treemap-head__title {
+  font-family: var(--font-label);
   font-size: 10px;
   font-weight: 640;
   letter-spacing: 0.075em;
@@ -840,11 +827,10 @@ input {
   min-width: 170px;
   max-width: 340px;
   padding: 7px 9px;
-  border-radius: 7px;
+  border-radius: var(--r-md);
   border: 1px solid var(--border-strong);
-  background: rgba(16, 19, 26, 0.97);
-  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(12px);
+  background: #131720;
+  box-shadow: var(--shadow-pop);
   font-size: 11.5px;
   line-height: 1.45;
 }
@@ -932,17 +918,15 @@ input {
   z-index: 80;
   min-width: 180px;
   padding: 4px;
-  border-radius: 8px;
+  border-radius: var(--r-lg);
   border: 1px solid var(--border-strong);
-  background: rgba(20, 24, 33, 0.98);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(16px);
-  animation: pop var(--t-popup) var(--ease);
+  background: #141821;
+  box-shadow: var(--shadow-pop);
+  animation: appear var(--t-popup) linear;
 }
-@keyframes pop {
+@keyframes appear {
   from {
     opacity: 0;
-    transform: translateY(-3px) scale(0.985);
   }
 }
 
@@ -953,11 +937,14 @@ input {
   width: 100%;
   height: 26px;
   padding: 0 9px;
-  border-radius: 5px;
+  /* A long file name must clip, not wrap: wrapping breaks the row rhythm. */
+  white-space: nowrap;
+  overflow: hidden;
+  border-radius: var(--r-sm);
   font-size: 12.5px;
   color: var(--text-primary);
   text-align: left;
-  transition: background var(--t-hover) var(--ease);
+  transition: background var(--t-hover) linear;
 }
 .menu-item:hover:not(:disabled) {
   background: var(--accent-soft);
@@ -965,8 +952,14 @@ input {
 .menu-item:disabled {
   color: var(--text-faint);
 }
+.menu-item__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .menu-item__key {
+  flex: 0 0 auto;
   margin-left: auto;
+  padding-left: 8px;
   color: var(--text-muted);
   font-size: 11px;
 }
@@ -988,9 +981,9 @@ input {
   gap: 8px;
   width: 100%;
   padding: 6px 9px;
-  border-radius: 5px;
+  border-radius: var(--r-sm);
   text-align: left;
-  transition: background var(--t-hover) var(--ease);
+  transition: background var(--t-hover) linear;
 }
 .vol-item:hover {
   background: var(--accent-soft);
@@ -1011,7 +1004,7 @@ input {
   font-variant-numeric: tabular-nums;
 }
 .vol-item__check {
-  color: var(--accent-solid);
+  color: var(--accent);
 }
 
 /* ----------------------------------------------------------------- modal */
@@ -1024,7 +1017,7 @@ input {
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: fade var(--t-popup) var(--ease);
+  animation: fade var(--t-popup) linear;
 }
 @keyframes fade {
   from {
@@ -1035,12 +1028,12 @@ input {
 .modal {
   width: 430px;
   max-width: calc(100vw - 60px);
-  border-radius: 12px;
+  border-radius: var(--r-lg);
   border: 1px solid var(--border-strong);
   background: #12161f;
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
   overflow: hidden;
-  animation: pop var(--t-popup) var(--ease);
+  animation: appear var(--t-popup) linear;
 }
 .modal--wide {
   width: 520px;
@@ -1049,7 +1042,8 @@ input {
   padding: 18px 18px 14px;
 }
 .modal__title {
-  font-size: 14.5px;
+  font-family: var(--font-label);
+  font-size: 14px;
   font-weight: 620;
   margin: 0 0 8px;
   line-height: 1.35;
@@ -1071,7 +1065,7 @@ input {
   max-height: 168px;
   overflow-y: auto;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: var(--r-md);
   background: var(--bg-root);
 }
 .modal__list-row {
@@ -1098,7 +1092,7 @@ input {
 .modal__note {
   margin-top: 10px;
   padding: 8px 10px;
-  border-radius: 7px;
+  border-radius: var(--r-md);
   background: rgba(201, 168, 106, 0.08);
   border: 1px solid rgba(201, 168, 106, 0.22);
   color: #d9be8b;
@@ -1145,7 +1139,7 @@ input {
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.11);
   position: relative;
-  transition: background var(--t-select) var(--ease);
+  transition: background var(--t-select) linear;
 }
 .switch::after {
   content: "";
@@ -1156,10 +1150,10 @@ input {
   height: 16px;
   border-radius: 50%;
   background: #e6e8ee;
-  transition: transform var(--t-select) var(--ease);
+  transition: transform var(--t-select) linear;
 }
 .switch--on {
-  background: var(--accent-solid);
+  background: var(--accent);
 }
 .switch--on::after {
   transform: translateX(14px);
