@@ -188,6 +188,7 @@ export interface UsageMetadata {
 }
 
 export interface Settings {
+  language: "auto" | "en" | "ja";
   sizeBasis: "allocated" | "logical";
   groupBundles: boolean;
   followSymlinks: boolean;

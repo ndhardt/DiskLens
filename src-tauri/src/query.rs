@@ -1,6 +1,4 @@
-//! The search bar's little query language.
-//!
-//! Terms are whitespace separated and ANDed together:
+//! Search query language. Terms are whitespace separated and ANDed:
 //!
 //! ```text
 //! mov                 name contains "mov"
@@ -52,7 +50,7 @@ pub enum Term {
     Unused(Cmp, f64),
     /// Days since modification.
     Modified(Cmp, f64),
-    /// Never matches — a malformed term should return nothing rather than
+    /// Never matches. A malformed term returns nothing rather than
     /// silently widening the result set.
     Impossible,
 }
@@ -129,7 +127,7 @@ impl Query {
     }
 }
 
-/// Split on whitespace, but keep `"quoted phrases"` together.
+/// Split on whitespace, keeping quoted phrases together.
 fn split_terms(input: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut cur = String::new();
@@ -256,7 +254,7 @@ pub fn parse_duration_days(s: &str) -> Option<f64> {
     Some(n * days)
 }
 
-/// Minimal `*`/`?` glob, iterative so it cannot blow the stack.
+/// Minimal `*`/`?` glob. Iterative, so deep patterns cannot blow the stack.
 pub fn glob_match(pat: &str, text: &str) -> bool {
     let p: Vec<char> = pat.chars().collect();
     let t: Vec<char> = text.chars().collect();

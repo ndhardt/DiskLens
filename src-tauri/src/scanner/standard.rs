@@ -1,7 +1,7 @@
-//! Portable scanner: `readdir` + `lstat` per entry.
+//! Portable scanner: `readdir` plus `lstat` per entry.
 //!
-//! This is the reference implementation. It is the one the tests exercise, and
-//! the fallback whenever the macOS bulk path is unavailable.
+//! The reference implementation, and the fallback when the macOS bulk path is
+//! unavailable.
 
 use std::ffi::CString;
 use std::os::unix::ffi::OsStrExt;
@@ -43,7 +43,7 @@ impl super::DiskScanner for StandardScanner {
 fn lstat_entry(path: &Path, name: String) -> Option<RawEntry> {
     let c = CString::new(path.as_os_str().as_bytes()).ok()?;
     let mut st: libc::stat = unsafe { std::mem::zeroed() };
-    // lstat, never stat: we describe the link itself, not its target.
+    // lstat, not stat: describe the link itself, not its target.
     if unsafe { libc::lstat(c.as_ptr(), &mut st) } != 0 {
         return None;
     }

@@ -1,17 +1,9 @@
-/* Design tokens. Dark is the only mode: this is a tool, not a document. */
+/* Design tokens. Dark only. */
 
-/* GitHub's Monaspace, SIL OFL 1.1, bundled so the app works offline.
-   Neon carries the interface; Krypton's squarer shapes mark structure. */
+/* Monaspace Neon, SIL OFL 1.1, bundled so the app works offline. */
 @font-face {
   font-family: "Monaspace Neon";
   src: url("../assets/fonts/MonaspaceNeonVar.woff2") format("woff2");
-  font-weight: 200 800;
-  font-style: normal;
-  font-display: block;
-}
-@font-face {
-  font-family: "Monaspace Krypton";
-  src: url("../assets/fonts/MonaspaceKryptonVar.woff2") format("woff2");
   font-weight: 200 800;
   font-style: normal;
   font-display: block;
@@ -32,13 +24,13 @@
   --text-muted: rgba(255, 255, 255, 0.38);
   --text-faint: rgba(255, 255, 255, 0.22);
 
-  /* One accent, used flat. Nothing here is a gradient. */
+  /* One accent, used flat. */
   --accent: #6377ff;
   --accent-dim: #4a5ad0;
   --accent-soft: rgba(99, 119, 255, 0.16);
   --usage-track: rgba(255, 255, 255, 0.07);
 
-  /* Idle-age scale. Desaturated on purpose: this is information, not an alarm. */
+  /* Idle-age scale, desaturated: information, not an alarm. */
   --age-fresh: #e4e7ef;
   --age-week: #9aa2b2;
   --age-month: #7d8fac;
@@ -47,8 +39,10 @@
   --age-year: #bd7970;
   --age-ancient: #c9645a;
 
-  /* Category colours live in src/lib/format.ts — the Treemap canvas needs
-     them in JavaScript, and one source of truth beats two that can drift. */
+  /* Category colours live in src/lib/format.ts: the Treemap canvas needs them
+     in JavaScript, and one source of truth beats two that can drift. */
+
+  --scrollbar-w: 11px;
 
   --row-h: 25px;
   --row-h-lg: 34px;
@@ -58,15 +52,13 @@
   /* CJK has no Monaspace equivalent, so it falls through to the system face. */
   --font-ui: "Monaspace Neon", "Hiragino Sans", "Noto Sans JP", -apple-system,
     BlinkMacSystemFont, sans-serif;
-  --font-label: "Monaspace Krypton", "Monaspace Neon", "Hiragino Sans",
-    -apple-system, sans-serif;
 
   --fs-table: 12px;
   --fs-ui: 12.5px;
   --fs-small: 10.5px;
   --fs-stat: 16px;
 
-  /* Motion is linear and short. Nothing eases, nothing bounces. */
+  /* Motion is linear and short. */
   --t-hover: 90ms;
   --t-select: 110ms;
   --t-popup: 120ms;

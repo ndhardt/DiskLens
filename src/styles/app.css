@@ -14,7 +14,7 @@ body,
 
 body {
   font-family: var(--font-ui);
-  /* Texture healing on; coding ligatures off, so "!=" in a file name stays
+  /* Texture healing on, coding ligatures off: "!=" in a file name must stay
      two characters. */
   font-feature-settings: "calt" 1, "liga" 0, "dlig" 0;
   font-size: var(--fs-ui);
@@ -45,8 +45,8 @@ input {
 }
 
 ::-webkit-scrollbar {
-  width: 11px;
-  height: 11px;
+  width: var(--scrollbar-w);
+  height: var(--scrollbar-w);
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -100,7 +100,12 @@ input {
   -webkit-app-region: drag;
 }
 
-.toolbar > * {
+/* Only controls opt out; the gaps stay draggable. */
+.toolbar button,
+.toolbar input,
+.toolbar select,
+.toolbar .search,
+.toolbar .volume-select {
   -webkit-app-region: no-drag;
 }
 
@@ -253,7 +258,6 @@ input {
   gap: 2px;
 }
 .drive__name {
-  font-family: var(--font-label);
   font-size: 14px;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -276,7 +280,6 @@ input {
   gap: 1px;
 }
 .stat__label {
-  font-family: var(--font-label);
   font-size: 9.5px;
   font-weight: 640;
   letter-spacing: 0.08em;
@@ -315,7 +318,7 @@ input {
 .drive__bar-fill {
   height: 100%;
   background: var(--accent);
-  /* Linear: the bar tracks the scan, so it should move at the scan's pace. */
+  /* Linear: the bar moves at the scan's pace. */
   transition: width 200ms linear;
 }
 .drive__bar-fill--scanning {
@@ -432,7 +435,6 @@ input {
 }
 
 .pane__caption {
-  font-family: var(--font-label);
   height: 22px;
   flex: 0 0 22px;
   display: flex;
@@ -485,15 +487,17 @@ input {
 .table__head {
   flex: 0 0 auto;
   display: flex;
+  /* Matches the body's reserved scrollbar gutter; without it the columns shift
+     by the scrollbar width once a table becomes scrollable. */
+  padding-right: var(--scrollbar-w);
   height: var(--head-h);
   align-items: stretch;
   border-bottom: 1px solid var(--border-strong);
   background: var(--bg-panel-secondary);
   color: var(--text-secondary);
-  font-family: var(--font-label);
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  font-weight: 620;
+  letter-spacing: 0.02em;
   overflow: hidden;
 }
 .table--lg .table__head {
@@ -505,7 +509,7 @@ input {
   align-items: center;
   padding: 0 8px;
   gap: 3px;
-  border-right: 1px solid rgba(255, 255, 255, 0.045);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.045);
   white-space: nowrap;
   overflow: hidden;
   flex: 0 0 auto;
@@ -533,7 +537,8 @@ input {
 .table__body {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
   overflow-x: hidden;
   position: relative;
   outline: none;
@@ -777,7 +782,6 @@ input {
 }
 
 .treemap-head__title {
-  font-family: var(--font-label);
   font-size: 10px;
   font-weight: 640;
   letter-spacing: 0.075em;
@@ -937,7 +941,7 @@ input {
   width: 100%;
   height: 26px;
   padding: 0 9px;
-  /* A long file name must clip, not wrap: wrapping breaks the row rhythm. */
+  /* A long file name clips rather than wrapping. */
   white-space: nowrap;
   overflow: hidden;
   border-radius: var(--r-sm);
@@ -1042,7 +1046,6 @@ input {
   padding: 18px 18px 14px;
 }
 .modal__title {
-  font-family: var(--font-label);
   font-size: 14px;
   font-weight: 620;
   margin: 0 0 8px;

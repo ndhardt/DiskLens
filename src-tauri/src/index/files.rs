@@ -1,4 +1,4 @@
-//! File-level views: sorting, ranking and the row payloads sent to the UI.
+//! File views: sorting, ranking, and the rows sent to the UI.
 
 use serde::{Deserialize, Serialize};
 
@@ -8,10 +8,10 @@ use crate::query::Query;
 
 pub const DAY: i64 = 86_400;
 
-/// Raw (un-normalised) review priority.
+/// Un-normalised review priority.
 ///
-/// `size` and `age` are both compressed logarithmically so that a merely large
-/// file cannot outrank a large *and* forgotten one.
+/// Size and age are both compressed logarithmically, so a merely large file
+/// cannot outrank a large and forgotten one.
 pub fn raw_cleanup_score(f: &FileRec, now: i64) -> f64 {
     let bytes = f.alloc.max(f.size) as f64;
     let mb = bytes / (1024.0 * 1024.0);
@@ -19,8 +19,8 @@ pub fn raw_cleanup_score(f: &FileRec, now: i64) -> f64 {
 
     let last = f.effective_last_used();
     let unused_days = if last == NO_TIME {
-        // Unknown usage: fall back to modification age, and damp it, so a file
-        // we simply know nothing about does not float to the top.
+        // Unknown usage: fall back to a damped modification age, so a file we
+        // know nothing about does not float to the top.
         if f.mtime == NO_TIME {
             30.0
         } else {
@@ -75,7 +75,7 @@ impl Default for SortSpec {
     }
 }
 
-/// The Space Hogs preset orderings.
+/// Preset orderings for the ranking view.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum HogMode {
@@ -87,7 +87,7 @@ pub enum HogMode {
     RecentlyModified,
 }
 
-/// The one-click size / age narrowing above the Space Hogs table.
+/// One-click size and age narrowing above the ranking table.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum QuickFilter {
@@ -127,7 +127,7 @@ impl QuickFilter {
     }
 }
 
-/// One row in the file list / Space Hogs table.
+/// One row of a file table.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FileRow {
@@ -203,13 +203,13 @@ pub fn opt_time(t: i64) -> Option<i64> {
     }
 }
 
-/// Comparator used by every table. Returns ordering for `a` before `b`.
+/// Comparator shared by every file table.
 pub fn compare(ix: &ScanIndex, a: u32, b: u32, spec: SortSpec, now: i64) -> std::cmp::Ordering {
     use std::cmp::Ordering;
     let fa = &ix.files[a as usize];
     let fb = &ix.files[b as usize];
 
-    // Missing timestamps always sink to the bottom, whichever way we sort.
+    // Missing timestamps sink to the bottom whichever way we sort.
     let time_cmp = |ta: i64, tb: i64, desc: bool| -> Ordering {
         match (ta == NO_TIME, tb == NO_TIME) {
             (true, true) => Ordering::Equal,
@@ -250,9 +250,9 @@ pub fn compare(ix: &ScanIndex, a: u32, b: u32, spec: SortSpec, now: i64) -> std:
                 o
             }
         }
-        // "Last used" descending means most recent first.
+        // Descending means most recent first.
         SortKey::LastUsed => time_cmp(fa.effective_last_used(), fb.effective_last_used(), spec.desc),
-        // "Unused for" descending means longest idle first — the inverse.
+        // Descending means longest idle first, the inverse of last-used.
         SortKey::UnusedFor => time_cmp(
             fa.effective_last_used(),
             fb.effective_last_used(),
@@ -295,7 +295,7 @@ pub fn compare(ix: &ScanIndex, a: u32, b: u32, spec: SortSpec, now: i64) -> std:
             }
         }
     };
-    // Stable, deterministic paging even when the key ties.
+    // Deterministic paging when the key ties.
     ord.then_with(|| a.cmp(&b))
 }
 
@@ -324,10 +324,9 @@ pub fn hog_sort_spec(mode: HogMode) -> SortSpec {
     }
 }
 
-/// Collect the ids matching a query + quick filter, ordered by `spec`.
+/// Ids matching a query and quick filter, ordered by `spec`.
 ///
-/// The result is a *plain id list*: the caller slices it for the viewport, so
-/// nothing but the visible rows is ever serialised.
+/// Returns a plain id list; the caller slices it for the viewport.
 pub fn select_files(
     ix: &ScanIndex,
     candidates: &[u32],
@@ -356,7 +355,7 @@ pub fn select_files(
     };
 
     let mut out = filtered;
-    // `by_size` is already the descending-size order; skip re-sorting for it.
+    // `by_size` is already in descending size order.
     let already_sorted = spec.key == SortKey::Size
         && spec.desc
         && std::ptr::eq(candidates.as_ptr(), ix.by_size.as_ptr());

@@ -101,11 +101,7 @@ const realApi = {
   deniedReport: () => invoke<DeniedInfo>("denied_report"),
 };
 
-/**
- * Outside the Tauri shell there is no Rust side to talk to, so `npm run dev` in
- * a plain browser gets the fixture harness instead. Inside the app this is
- * always the real IPC surface.
- */
+/** `npm run dev` in a plain browser gets the fixture harness; the app gets IPC. */
 const inTauri =
   typeof window !== "undefined" &&
   "__TAURI_INTERNALS__" in (window as unknown as Record<string, unknown>);

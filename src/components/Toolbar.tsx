@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { bytes } from "../lib/format";
 import { useDismiss } from "../lib/hooks";
+import { useI18n } from "../lib/i18n";
 import type { Mode, VolumeInfo } from "../lib/types";
 import {
   IconCheck,
@@ -43,13 +44,10 @@ export function Toolbar({
   onSettings,
   mode,
 }: Props) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const popRef = useDismiss(open, () => setOpen(false));
-
-  const placeholder =
-    mode === "types"
-      ? "Filter extensions"
-      : "Search — size:>5GB unused:>6m *.mov";
+  const placeholder = mode === "types" ? t("search.types") : t("search.files");
 
   return (
     <div className="toolbar">
@@ -59,10 +57,10 @@ export function Toolbar({
         <button
           className="ctl volume-select__button"
           onClick={() => setOpen((o) => !o)}
-          title="Choose a volume to scan"
+          title={t("vol.pick")}
         >
           <IconDrive />
-          <span className="volume-select__name">{volume?.name ?? "Select volume"}</span>
+          <span className="volume-select__name">{volume?.name ?? t("vol.select")}</span>
           <span className="volume-select__meta num">
             {volume ? bytes(volume.total, 0) : ""}
           </span>
@@ -87,8 +85,8 @@ export function Toolbar({
                 <span className="vol-item__main">
                   <span className="vol-item__name">{v.name}</span>
                   <span className="vol-item__sub">
-                    {bytes(v.total, 1)} {v.fsType} · {bytes(v.free, 1)} free
-                    {v.readOnly ? " · read-only" : ""}
+                    {bytes(v.total, 1)} {v.fsType} · {bytes(v.free, 1)} {t("vol.free")}
+                    {v.readOnly ? ` · ${t("vol.readonly")}` : ""}
                   </span>
                 </span>
                 {volume?.path === v.path ? (
@@ -106,14 +104,14 @@ export function Toolbar({
         className="ctl ctl--primary"
         onClick={onScan}
         disabled={scanning || !volume}
-        title="Scan the selected volume (⌘R)"
+        title={`${t("app.scan")} (⌘R)`}
       >
-        Scan
+        {t("app.scan")}
       </button>
       {scanning && (
-        <button className="ctl ctl--danger" onClick={onStop} title="Stop scanning">
+        <button className="ctl ctl--danger" onClick={onStop} title={t("app.stop")}>
           <IconStop />
-          Stop
+          {t("app.stop")}
         </button>
       )}
 
@@ -129,10 +127,10 @@ export function Toolbar({
           spellCheck={false}
           placeholder={placeholder}
           onChange={(e) => onSearch(e.target.value)}
-          aria-label="Search"
+          aria-label={t("search.files")}
         />
         {search && (
-          <button className="search__clear" onClick={() => onSearch("")} title="Clear (Esc)">
+          <button className="search__clear" onClick={() => onSearch("")} title={`${t("app.clear")} (Esc)`}>
             ×
           </button>
         )}
@@ -142,11 +140,11 @@ export function Toolbar({
         className="ctl ctl--icon"
         onClick={onRefresh}
         disabled={scanning || !hasIndex}
-        title="Rescan (⌘R)"
+        title={`${t("app.rescan")} (⌘R)`}
       >
         <IconRefresh />
       </button>
-      <button className="ctl ctl--icon" onClick={onSettings} title="Settings">
+      <button className="ctl ctl--icon" onClick={onSettings} title={t("app.settings")}>
         <IconGear />
       </button>
     </div>

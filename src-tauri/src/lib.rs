@@ -1,8 +1,7 @@
-//! DiskLens — fast storage analysis for macOS.
+//! DiskLens: storage analysis for macOS.
 //!
-//! The Rust side owns the scan index. The UI asks for the rows it is about to
-//! paint and nothing more, which is what keeps a three-million-file drive
-//! responsive.
+//! Rust owns the scan index; the UI requests only the rows it paints. That is
+//! what keeps a multi-million-file drive responsive.
 
 pub mod commands;
 pub mod finder;
@@ -22,8 +21,7 @@ use state::AppState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Verify the bulk scanner against lstat before anything relies on it; it
-    // disables itself if the kernel's packing ever stops matching.
+    // Verify the bulk scanner against lstat before anything relies on it.
     #[cfg(target_os = "macos")]
     {
         scanner::macos::self_check();
@@ -32,8 +30,17 @@ pub fn run() {
     let shared = Arc::new(AppState::default());
     *shared.volumes.write() = volumes::list_volumes();
 
+    let startup = Arc::clone(&shared);
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .setup(move |app| {
+            use tauri::Manager;
+            if let Ok(dir) = app.path().app_config_dir() {
+                *startup.settings.write() = state::load_settings(&dir);
+                *startup.config_dir.write() = Some(dir);
+            }
+            Ok(())
+        })
         .manage(shared)
         .invoke_handler(tauri::generate_handler![
             commands::list_volumes,

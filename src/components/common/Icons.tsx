@@ -1,4 +1,4 @@
-/** Small stroke icons drawn inline. Nothing here comes from another product. */
+/** Inline stroke icons. */
 
 const S = { fill: "none", stroke: "currentColor", strokeWidth: 1.4, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
 

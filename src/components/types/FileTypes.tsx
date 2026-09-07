@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../lib/api";
 import { fitColumns, type ColumnDef } from "../../lib/columns";
-import { bytes, CATEGORY_COLOR, count, pct } from "../../lib/format";
+import { bytes, CATEGORY_COLOR, categoryLabel, count, pct } from "../../lib/format";
+import { useI18n } from "../../lib/i18n";
 import { useElementSize } from "../../lib/hooks";
 import type { ExtRow, ExtSort, ExtSortKey } from "../../lib/types";
 import { Th } from "../common/Th";
@@ -18,14 +19,14 @@ type Key =
   | "largest";
 
 const COLUMNS: ColumnDef<Key, ExtSortKey>[] = [
-  { key: "ext", label: "Extension", width: 130, priority: 100, required: true, sortKey: "extension" },
-  { key: "category", label: "Category", width: 118, priority: 80, sortKey: "category" },
-  { key: "files", label: "Files", width: 92, num: true, priority: 70, sortKey: "files" },
-  { key: "size", label: "Total Size", width: 112, num: true, priority: 99, required: true, sortKey: "totalSize" },
-  { key: "alloc", label: "Allocated", width: 112, num: true, priority: 40, sortKey: "allocated" },
-  { key: "pctDrive", label: "% Drive", width: 84, num: true, priority: 60, sortKey: "pctDrive" },
-  { key: "average", label: "Average Size", width: 116, num: true, priority: 50, sortKey: "averageSize" },
-  { key: "largest", label: "Largest File", width: 200, flex: true, priority: 30, sortKey: "largestFile" },
+  { key: "ext", labelKey: "col.extension", width: 130, priority: 100, required: true, sortKey: "extension" },
+  { key: "category", labelKey: "col.category", width: 118, priority: 80, sortKey: "category" },
+  { key: "files", labelKey: "col.files", width: 92, num: true, priority: 70, sortKey: "files" },
+  { key: "size", labelKey: "col.totalSize", width: 112, num: true, priority: 99, required: true, sortKey: "totalSize" },
+  { key: "alloc", labelKey: "col.allocated", width: 112, num: true, priority: 40, sortKey: "allocated" },
+  { key: "pctDrive", labelKey: "col.pctDrive", width: 84, num: true, priority: 60, sortKey: "pctDrive" },
+  { key: "average", labelKey: "col.averageSize", width: 116, num: true, priority: 50, sortKey: "averageSize" },
+  { key: "largest", labelKey: "col.largestFile", width: 200, flex: true, priority: 30, sortKey: "largestFile" },
 ];
 
 interface Props {
@@ -36,6 +37,7 @@ interface Props {
 }
 
 export function FileTypes({ generation, filter, onPickExtension, onCount }: Props) {
+  const { t } = useI18n();
   const [sort, setSort] = useState<ExtSort>({ key: "totalSize", desc: true });
   const [rows, setRows] = useState<ExtRow[]>([]);
   const [wrapRef, size] = useElementSize<HTMLDivElement>();
@@ -55,9 +57,9 @@ export function FileTypes({ generation, filter, onPickExtension, onCount }: Prop
     const q = filter.trim().toLowerCase().replace(/^[*.]+/, "");
     if (!q) return rows;
     return rows.filter(
-      (r) => r.ext.includes(q) || r.categoryLabel.toLowerCase().includes(q),
+      (r) => r.ext.includes(q) || categoryLabel(r.category, t).toLowerCase().includes(q),
     );
-  }, [rows, filter]);
+  }, [rows, filter, t]);
 
   useEffect(() => {
     onCount(rows.length);
@@ -71,7 +73,7 @@ export function FileTypes({ generation, filter, onPickExtension, onCount }: Prop
       {cols.map((c) => (
         <Th
           key={c.key}
-          label={c.label}
+          label={t(c.labelKey)}
           width={c.width}
           flex={c.flex}
           num={c.num}
@@ -92,24 +94,24 @@ export function FileTypes({ generation, filter, onPickExtension, onCount }: Prop
   return (
     <div className="pane" ref={wrapRef} style={{ flex: "1 1 auto" }}>
       <div className="pane__caption">
-        <span>FILE TYPES</span>
+        <span>{t("cap.fileTypes")}</span>
         <span className="pane__caption-sep">·</span>
         <span>
-          <b>{count(shown.length)}</b> extensions
+          <b>{t("cap.extensions", { n: count(shown.length) })}</b>
         </span>
         <span className="pane__caption-sep">·</span>
         <span>
           <b>{bytes(totalSize, 1)}</b>
         </span>
         <span className="pane__caption-sep">·</span>
-        <span>click an extension to see those files</span>
+        <span>{t("cap.clickExt")}</span>
       </div>
       <VirtualTable
         rowHeight={25}
         total={shown.length}
         onRange={() => {}}
         head={head}
-        empty={<div className="empty">No file types to show.</div>}
+        empty={<div className="empty">{t("empty.noTypes")}</div>}
         renderRow={(i, top) => {
           const r = shown[i];
           if (!r) return <div className="row" key={i} style={{ top }} />;
@@ -120,7 +122,7 @@ export function FileTypes({ generation, filter, onPickExtension, onCount }: Prop
               key={r.label}
               style={{ top }}
               onClick={() => onPickExtension(r.ext)}
-              title={`Show every ${r.label} file in Space Hogs`}
+              title={r.label}
             >
               {cols.map((c) => {
                 const w = { width: c.width, flexBasis: c.width };
@@ -135,7 +137,7 @@ export function FileTypes({ generation, filter, onPickExtension, onCount }: Prop
                   case "category":
                     return (
                       <div className="cell cell--dim" key={c.key} style={w}>
-                        {r.categoryLabel}
+                        {categoryLabel(r.category, t)}
                       </div>
                     );
                   case "files":

@@ -10,6 +10,7 @@ import {
   unusedFor,
   unusedLong,
 } from "../../lib/format";
+import { useI18n } from "../../lib/i18n";
 import type { LastUsedSource } from "../../lib/types";
 
 export function SizeCell({ value, width }: { value: number; width: number }) {
@@ -47,20 +48,25 @@ export function UnusedCell({
   width: number;
   now: number;
 }) {
+  const { t, lang } = useI18n();
   const bucket = ageBucket(lastUsed, now);
   const color = AGE_COLOR[bucket];
   const frac = ageFraction(lastUsed, now);
   const title =
     lastUsed == null
-      ? "Last used: Unknown"
-      : `Last used:\n${dateTimeLong(lastUsed)}\n\nUnused:\n${unusedLong(lastUsed, now)}${
-          source ? `\n\nSource:\n${sourceLabel(source)}` : ""
-        }`;
+      ? `${t("tip.lastUsed")}: ${t("tip.unknown")}`
+      : [
+          `${t("tip.lastUsed")}:\n${dateTimeLong(lastUsed, lang)}`,
+          `${t("tip.unused")}:\n${unusedLong(lastUsed, now, t)}`,
+          source ? `${t("tip.source")}:\n${sourceLabel(source, t)}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n\n");
   return (
     <div className="cell cell--num" style={{ width, flexBasis: width }} title={title}>
       <div className="age">
         <span className="age__text" style={{ color: lastUsed == null ? undefined : color }}>
-          {unusedFor(lastUsed, now)}
+          {unusedFor(lastUsed, now, t)}
         </span>
         <div className="age__bar">
           <div
@@ -74,11 +80,12 @@ export function UnusedCell({
 }
 
 export function ScoreCell({ value, width }: { value: number; width: number }) {
+  const { t } = useI18n();
   return (
     <div
       className="cell"
       style={{ width, flexBasis: width }}
-      title={`Review priority ${value} of 100 — large and long untouched. Not a deletion recommendation.`}
+      title={t("tip.score", { n: value })}
     >
       <div className="score">
         <div className="score__track">

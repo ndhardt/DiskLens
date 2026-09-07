@@ -1,9 +1,8 @@
 //! Directory walking.
 //!
-//! A [`DiskScanner`] knows how to list one directory with metadata. The walker
-//! in this module drives it breadth-first, one level at a time, with the whole
-//! level read in parallel. Merging is single threaded but only pushes into
-//! vectors, so the syscalls stay the bottleneck — which is the point.
+//! A [`DiskScanner`] lists one directory with metadata. The walker drives it
+//! breadth-first, reading each level in parallel. Merging is single threaded
+//! but only appends to vectors, so syscalls remain the bottleneck.
 
 pub mod macos;
 pub mod standard;
@@ -26,9 +25,9 @@ pub struct RawEntry {
     pub name: String,
     pub is_dir: bool,
     pub is_symlink: bool,
-    /// Logical size. For a cloud placeholder this is the full size of the file.
+    /// Logical size. For a cloud placeholder, the full size of the file.
     pub size: u64,
-    /// Bytes actually occupied on this disk. Zero for cloud placeholders.
+    /// Bytes occupied on this disk. Zero for cloud placeholders.
     pub alloc: u64,
     pub mtime: i64,
     pub atime: i64,
@@ -36,8 +35,8 @@ pub struct RawEntry {
     pub st_flags: u32,
     pub ino: u64,
     pub dev: i64,
-    /// Hard link count. Only meaningful for files: APFS and `lstat` disagree on
-    /// what a directory's link count is, and nothing here needs it.
+    /// Link count. Meaningful for files only: APFS reports a directory's as 1
+    /// while lstat synthesizes 2, and nothing here uses it.
     pub nlink: u32,
 }
 
@@ -57,7 +56,7 @@ pub trait DiskScanner: Send + Sync {
 pub struct ScanOptions {
     pub root: PathBuf,
     pub volume_name: String,
-    /// Symlinks are recorded but never descended into by default.
+    /// Symlinks are recorded but not descended into by default.
     pub follow_symlinks: bool,
     /// Descend into filesystems mounted below the root that are not part of the
     /// root's own volume group.
@@ -90,9 +89,9 @@ pub struct WalkStats {
     pub done: bool,
 }
 
-/// SF_DATALESS — the file's bytes live in iCloud, not on this disk. Reading a
-/// dataless file's *content* would fault it in; reading metadata does not, and
-/// metadata is all we ever touch.
+/// SF_DATALESS: the bytes live in iCloud, not on this disk. Reading the
+/// content would fault it in. Reading metadata does not, and metadata is all
+/// this app touches.
 pub const SF_DATALESS: u32 = 0x4000_0000;
 
 pub fn make_scanner(opts: &ScanOptions) -> Box<dyn DiskScanner> {
@@ -106,8 +105,8 @@ pub fn make_scanner(opts: &ScanOptions) -> Box<dyn DiskScanner> {
 
 /// Walk `opts.root`, filling `index`.
 ///
-/// `progress` is called at most every ~90ms with running totals; it is never
-/// called per file.
+/// `progress` is called at most every ~90ms with running totals, never per
+/// file.
 pub fn walk(
     opts: &ScanOptions,
     scanner: &dyn DiskScanner,
@@ -201,7 +200,7 @@ pub fn walk(
 
             for e in entries {
                 if e.is_symlink && !opts.follow_symlinks {
-                    // Recorded as a zero-cost leaf: the bytes belong to the target.
+                    // Zero-cost leaf: the bytes belong to the target.
                     push_file(index, dir_id, &e, flags::IS_SYMLINK, 0, 0);
                     stats.files += 1;
                     continue;
@@ -217,8 +216,8 @@ pub fn walk(
                     let ext = extension_of(&e.name);
                     let is_pkg = !ext.is_empty() && is_package_ext(&ext);
 
-                    // Mount points get their identity from the mounted volume,
-                    // which is only visible through stat().
+                    // A mount point's identity comes from the mounted volume,
+                    // visible only through stat().
                     let (dev, ino) = if mounts.is_mount_point(&child_path) {
                         stat_dev_ino(&child_path).unwrap_or((e.dev, e.ino))
                     } else {
@@ -230,7 +229,7 @@ pub fn walk(
                         continue;
                     }
                     if !seen_dirs.insert((dev, ino)) {
-                        // Already reached by a shorter path (firmlink or bind).
+                        // Already reached by a shorter path (firmlink).
                         continue;
                     }
 
@@ -271,8 +270,7 @@ pub fn walk(
                     if cloud {
                         f |= flags::IS_CLOUD;
                     }
-                    // A hard link seen for the second time must not add bytes
-                    // to the disk total a second time.
+                    // Count a hard link's bytes once.
                     if e.nlink > 1 && !seen_links.insert((e.dev, e.ino)) {
                         f |= flags::IS_HARDLINK_DUP;
                     }

@@ -1,8 +1,7 @@
 //! `kMDItemLastUsedDate` via the Metadata framework.
 //!
-//! `MDItemCreate` talks to the metadata server; it reads the index, and never
-//! opens the file, so asking about an iCloud placeholder does not fault its
-//! bytes down from the cloud.
+//! `MDItemCreate` reads the metadata index and never opens the file, so asking
+//! about an iCloud placeholder does not fault its bytes down.
 
 #![cfg(target_os = "macos")]
 
@@ -29,8 +28,8 @@ struct AttrNames {
     used_dates: CFString,
 }
 
-// CFString is immutable and CF is thread-safe for reads, so one shared copy of
-// each attribute name is enough for every worker thread.
+// CFString is immutable and CF reads are thread-safe, so one shared copy of
+// each attribute name serves every worker.
 unsafe impl Send for AttrNames {}
 unsafe impl Sync for AttrNames {}
 
@@ -39,8 +38,7 @@ static NAMES: Lazy<AttrNames> = Lazy::new(|| AttrNames {
     used_dates: CFString::from_static_string("kMDItemUsedDates"),
 });
 
-/// Last-used instant for `path`, as Unix seconds, or `None` when Spotlight has
-/// no record of it.
+/// Last-used instant for `path` in Unix seconds, or `None` if unknown.
 pub fn last_used(path: &str) -> Option<i64> {
     let cf_path = CFString::new(path);
     let item = unsafe { MDItemCreate(std::ptr::null(), cf_path.as_concrete_TypeRef()) };
@@ -52,7 +50,7 @@ pub fn last_used(path: &str) -> Option<i64> {
     if let Some(t) = copy_date(item, NAMES.last_used.as_concrete_TypeRef()) {
         return Some(t);
     }
-    // Some items only carry the day-resolution history array.
+    // Some items carry only the day-resolution history array.
     copy_latest_date_in_array(item, NAMES.used_dates.as_concrete_TypeRef())
 }
 
@@ -98,7 +96,7 @@ fn to_unix(abs: f64) -> Option<i64> {
         return None;
     }
     let unix = abs + CF_EPOCH_OFFSET;
-    // Reject nonsense rather than showing a 1904 date in the table.
+    // Reject nonsense rather than show a 1904 date.
     if !(0.0..=4_102_444_800.0).contains(&unix) {
         return None;
     }
@@ -114,9 +112,9 @@ impl Drop for CfGuard {
     }
 }
 
-/// Is Spotlight likely to answer for this volume at all?
+/// Whether Spotlight is likely to answer for this volume.
 pub fn indexing_enabled(volume: &str) -> bool {
-    // The store directory only exists on an indexed volume.
+    // The store directory exists only on an indexed volume.
     let p = if volume == "/" {
         "/.Spotlight-V100".to_string()
     } else {

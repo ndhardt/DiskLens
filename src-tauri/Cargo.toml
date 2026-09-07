@@ -1,8 +1,8 @@
 [package]
 name = "disklens"
-version = "0.1.0"
-description = "DiskLens - fast storage analysis for macOS"
-authors = ["DiskLens"]
+version = "1.0.0"
+description = "DiskLens: storage analysis for macOS"
+authors = ["ndhardt"]
 edition = "2021"
 rust-version = "1.77"
 

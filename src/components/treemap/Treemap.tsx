@@ -1,13 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api } from "../../lib/api";
-import {
-  bytes,
-  CATEGORY_BY_INDEX,
-  CATEGORY_COLOR,
-  CATEGORY_LABEL,
-  unusedFor,
-} from "../../lib/format";
+import { bytes, CATEGORY_BY_INDEX, CATEGORY_COLOR, categoryLabel, unusedFor } from "../../lib/format";
 import { useElementSize, useEvent } from "../../lib/hooks";
+import { useI18n, type T } from "../../lib/i18n";
 import type { ItemDetail, TreemapLayout, TreemapRect } from "../../lib/types";
 
 interface Props {
@@ -22,12 +17,10 @@ interface Props {
 }
 
 /**
- * The Treemap.
+ * Treemap renderer. Layout arrives from Rust as a flat rectangle list.
  *
- * Layout comes from Rust as a flat rectangle list; this only paints. The whole
- * map is rendered once into an offscreen canvas so that hovering — which
- * happens on every mouse move — costs one `drawImage` plus an outline, not a
- * few thousand fills.
+ * The map is drawn once into an offscreen canvas, so a hover costs one
+ * `drawImage` plus an outline rather than a few thousand fills.
  */
 export function Treemap({
   generation,
@@ -39,6 +32,7 @@ export function Treemap({
   onContext,
   now,
 }: Props) {
+  const { t } = useI18n();
   const [wrapRef, size] = useElementSize<HTMLDivElement>();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const offscreen = useRef<HTMLCanvasElement | null>(null);
@@ -129,11 +123,11 @@ export function Treemap({
   const hitTest = useCallback(
     (px: number, py: number): TreemapRect | null => {
       if (!layout) return null;
-      // Later rectangles are drawn on top, so the deepest match wins.
+      // Later rectangles draw on top, so the deepest match wins.
       for (let i = layout.rects.length - 1; i >= 0; i--) {
         const r = layout.rects[i];
         if (px >= r.x && px < r.x + r.w && py >= r.y && py < r.y + r.h) {
-          if (r.isDir && !r.collapsed) continue; // a container the user can see through
+          if (r.isDir && !r.collapsed) continue; // see-through container
           return r;
         }
       }
@@ -164,7 +158,7 @@ export function Treemap({
     else setHover({ rect: r, x: e.clientX, y: e.clientY });
   };
 
-  // Tooltip details are fetched lazily and cached, so hovering never blocks.
+  // Details are fetched lazily and cached, so hovering never blocks.
   useEffect(() => {
     if (!hover) {
       setDetail(null);
@@ -227,11 +221,12 @@ export function Treemap({
           y={hover.y}
           detail={detail?.id === hover.rect.id && detail.isDir === hover.rect.isDir ? detail : null}
           now={now}
+          t={t}
         />
       )}
       {!layout?.rects.length && (
         <div className="empty" style={{ position: "absolute", inset: 0 }}>
-          {generation === 0 ? "The Treemap fills in after a scan." : "Nothing to show here."}
+          {generation === 0 ? t("treemap.afterScan") : t("treemap.empty")}
         </div>
       )}
     </div>
@@ -244,12 +239,14 @@ function Tooltip({
   y,
   detail,
   now,
+  t,
 }: {
   rect: TreemapRect;
   x: number;
   y: number;
   detail: ItemDetail | null;
   now: number;
+  t: T;
 }) {
   const w = 300;
   const left = Math.min(x + 14, window.innerWidth - w - 12);
@@ -264,7 +261,11 @@ function Tooltip({
       {detail && <div className="tm-tip__path">{parentOf(detail.path)}</div>}
       {detail && (
         <div className="tm-tip__row">
-          Last used: {detail.lastUsed ? `${unusedFor(detail.lastUsed, now)} ago` : "Unknown"}
+          {t("treemap.lastUsed", {
+            v: detail.lastUsed
+              ? t("treemap.ago", { v: unusedFor(detail.lastUsed, now, t) })
+              : t("treemap.unknown"),
+          })}
         </div>
       )}
       <div className="tm-tip__row" style={{ display: "flex", alignItems: "center", gap: 5 }}>
@@ -272,8 +273,10 @@ function Tooltip({
           className="dot"
           style={{ background: CATEGORY_COLOR[CATEGORY_BY_INDEX[rect.cat] ?? "other"] }}
         />
-        {rect.isDir ? "Folder" : CATEGORY_LABEL[CATEGORY_BY_INDEX[rect.cat] ?? "other"]}
-        {detail?.isDir ? ` · ${detail.files.toLocaleString()} files` : ""}
+        {rect.isDir
+          ? t("treemap.folder")
+          : categoryLabel(CATEGORY_BY_INDEX[rect.cat] ?? "other", t)}
+        {detail?.isDir ? ` · ${t("treemap.nFiles", { n: detail.files.toLocaleString() })}` : ""}
       </div>
     </div>
   );
@@ -305,7 +308,7 @@ function paint(
     const base = CATEGORY_COLOR[CATEGORY_BY_INDEX[r.cat] ?? "other"] ?? "#8e8e98";
 
     if (r.isDir && !r.collapsed) {
-      // Containers are only a faint frame; their children carry the colour.
+      // Containers are a faint frame; their children carry the colour.
       ctx.fillStyle = "rgba(255,255,255,0.035)";
       ctx.fillRect(r.x, r.y, r.w, r.h);
       ctx.strokeStyle = "rgba(0,0,0,0.55)";
@@ -314,12 +317,12 @@ function paint(
       continue;
     }
 
-    // Flat fill, stepped slightly darker with depth so nesting still reads.
+    // Flat fill, stepped darker with depth so nesting reads.
     const fill = r.depth > 0 ? shade(base, -0.06 * Math.min(r.depth, 4)) : base;
     ctx.fillStyle = fill;
     ctx.fillRect(r.x, r.y, r.w, r.h);
 
-    // A one-pixel edge, not a cushion: enough to separate neighbours.
+    // A one-pixel edge to separate neighbours.
     if (r.w > 2 && r.h > 2) {
       ctx.fillStyle = "rgba(255,255,255,0.13)";
       ctx.fillRect(r.x, r.y, r.w, 1);
@@ -340,7 +343,7 @@ function paint(
   }
 }
 
-/** Would black text read on this fill? Rec. 709 luma. */
+/** Whether black text reads on this fill (Rec. 709 luma). */
 function isLight(color: string): boolean {
   const m = /rgb\((\d+),(\d+),(\d+)\)/.exec(color);
   const [r, g, b] = m

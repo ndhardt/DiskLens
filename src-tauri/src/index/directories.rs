@@ -1,6 +1,6 @@
-//! The Tree view: hierarchy preserved, biggest-first at every level.
+//! Tree view: hierarchy preserved, biggest-first at every level.
 //!
-//! Expansion state lives here rather than in React, so flattening a tree with
+//! Expansion state lives here rather than in React, so flattening a tree of
 //! hundreds of thousands of folders never crosses the IPC boundary.
 
 use serde::{Deserialize, Serialize};
@@ -70,7 +70,7 @@ impl ScanIndex {
         let mut kids = d.children.clone();
         let sort = self.tree_sort;
 
-        // `children` is already stored in allocated-size-descending order.
+        // Already stored in allocated-size-descending order.
         if sort.key == TreeSortKey::Size && sort.desc {
             return kids;
         }
@@ -150,7 +150,7 @@ impl ScanIndex {
             let mut out = Vec::with_capacity(1024);
             if !self.dirs.is_empty() {
                 let mut stack: Vec<u32> = vec![ROOT_ONLY];
-                // Explicit stack, so a pathological depth cannot blow the real one.
+                // Explicit stack: a pathological depth cannot overflow it.
                 while let Some(id) = stack.pop() {
                     out.push(id);
                     if self.expanded.get(id as usize).copied().unwrap_or(false) {
@@ -179,8 +179,7 @@ impl ScanIndex {
         }
     }
 
-    /// Expand every ancestor of `id` so a row becomes reachable, and return the
-    /// row index it lands on.
+    /// Expand every ancestor of `id` and return the row index it lands on.
     pub fn reveal_dir(&mut self, id: u32) -> Option<usize> {
         if id as usize >= self.dirs.len() {
             return None;

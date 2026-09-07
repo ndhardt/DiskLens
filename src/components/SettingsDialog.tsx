@@ -1,4 +1,5 @@
 import { count } from "../lib/format";
+import { useI18n } from "../lib/i18n";
 import type { DeniedInfo, ScanProgress, Settings } from "../lib/types";
 
 interface Props {
@@ -18,6 +19,7 @@ export function SettingsDialog({
   onOpenFda,
   onClose,
 }: Props) {
+  const { t } = useI18n();
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) =>
     onChange({ ...settings, [k]: v });
 
@@ -26,74 +28,79 @@ export function SettingsDialog({
       <div className="modal modal--wide" role="dialog" aria-modal="true">
         <div className="modal__body">
           <h2 className="modal__title" style={{ marginBottom: 4 }}>
-            Settings
+            {t("app.settings")}
           </h2>
 
+          <Row label={t("set.language")} hint={t("set.languageHint")}>
+            <select
+              className="select"
+              value={settings.language}
+              onChange={(e) => set("language", e.target.value as Settings["language"])}
+            >
+              <option value="auto">{t("set.auto")}</option>
+              <option value="en">English</option>
+              <option value="ja">日本語</option>
+            </select>
+          </Row>
+
           <Toggle
-            label="Group bundle contents"
-            hint="Show Thing.app or a Photos library as one item in Space Hogs instead of thousands of pieces."
+            label={t("set.groupBundles")}
+            hint={t("set.groupBundlesHint")}
             on={settings.groupBundles}
             onToggle={() => set("groupBundles", !settings.groupBundles)}
           />
 
-          <Row
-            label="Size basis"
-            hint="Allocated is what the file actually occupies on disk. Logical is its length, which is larger for sparse, compressed and cloud-only files."
-          >
+          <Row label={t("set.sizeBasis")} hint={t("set.sizeBasisHint")}>
             <select
               className="select"
               value={settings.sizeBasis}
               onChange={(e) => set("sizeBasis", e.target.value as Settings["sizeBasis"])}
             >
-              <option value="allocated">Allocated (on disk)</option>
-              <option value="logical">Logical</option>
+              <option value="allocated">{t("set.allocated")}</option>
+              <option value="logical">{t("set.logical")}</option>
             </select>
           </Row>
 
           <Toggle
-            label="Read usage dates from Spotlight"
-            hint={`Asks Spotlight for kMDItemLastUsedDate on the largest ${count(
-              settings.spotlightBudget,
-            )} files after a scan. Without it, Unused For falls back to filesystem access time.`}
+            label={t("set.spotlight")}
+            hint={t("set.spotlightHint", { n: count(settings.spotlightBudget) })}
             on={settings.spotlightEnrichment}
             onToggle={() => set("spotlightEnrichment", !settings.spotlightEnrichment)}
           />
 
           <Toggle
-            label="Fast macOS scanner"
-            hint="Reads a whole directory's metadata in one syscall (getattrlistbulk). Falls back automatically if it ever disagrees with the portable scanner."
+            label={t("set.fastScanner")}
+            hint={t("set.fastScannerHint")}
             on={settings.fastScanner}
             onToggle={() => set("fastScanner", !settings.fastScanner)}
           />
 
           <Toggle
-            label="Follow symbolic links"
-            hint="Off by default. Following links double-counts space and can loop."
+            label={t("set.symlinks")}
+            hint={t("set.symlinksHint")}
             on={settings.followSymlinks}
             onToggle={() => set("followSymlinks", !settings.followSymlinks)}
           />
 
           <Toggle
-            label="Cross into other volumes"
-            hint="Off by default. When off, a scan stays inside the selected volume group and skips other mounted disks."
+            label={t("set.crossVolumes")}
+            hint={t("set.crossVolumesHint")}
             on={settings.crossVolumes}
             onToggle={() => set("crossVolumes", !settings.crossVolumes)}
           />
 
           <Row
-            label="Full Disk Access"
+            label={t("set.fda")}
             hint={
               denied?.fullDiskAccess
-                ? "Granted. Every readable folder is being scanned."
-                : `Not granted. ${
-                    denied?.count
-                      ? `${count(denied.count)} folders were skipped in the last scan.`
-                      : "Some folders will be skipped."
-                  }`
+                ? t("set.fdaGranted")
+                : denied?.count
+                  ? t("set.fdaMissingN", { n: count(denied.count) })
+                  : t("set.fdaMissing")
             }
           >
             <button className="ctl" onClick={onOpenFda}>
-              Open Settings
+              {t("set.openSettings")}
             </button>
           </Row>
 
@@ -102,13 +109,13 @@ export function SettingsDialog({
               className="modal__text"
               style={{ marginTop: 12, color: "var(--text-muted)", fontSize: 11 }}
             >
-              Last scan used the {progress.scanner} scanner.
+              {t("set.scannerUsed", { name: progress.scanner })}
             </div>
           )}
         </div>
         <div className="modal__actions">
           <button className="ctl" onClick={onClose}>
-            Done
+            {t("app.done")}
           </button>
         </div>
       </div>

@@ -19,7 +19,7 @@ use crate::volumes::MountTable;
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum SizeBasis {
-    /// Bytes the file actually occupies on disk. The honest default.
+    /// Bytes occupied on disk. The default.
     #[default]
     Allocated,
     /// The file's logical length.
@@ -27,15 +27,17 @@ pub enum SizeBasis {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", default)]
 pub struct Settings {
+    /// "auto", "en" or "ja". "auto" follows the system language.
+    pub language: String,
     pub size_basis: SizeBasis,
     pub group_bundles: bool,
     pub follow_symlinks: bool,
     pub cross_volumes: bool,
     pub fast_scanner: bool,
     pub spotlight_enrichment: bool,
-    /// How many of the largest files get a Spotlight lookup after a scan.
+    /// How many of the largest files get a Spotlight lookup.
     pub spotlight_budget: usize,
     pub show_treemap: bool,
 }
@@ -43,6 +45,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Settings {
+            language: "auto".into(),
             size_basis: SizeBasis::Allocated,
             group_bundles: true,
             follow_symlinks: false,
@@ -71,16 +74,16 @@ pub struct ScanProgress {
     pub error: Option<String>,
     pub scanner: String,
     pub root: String,
-    /// Set once the post-scan Spotlight pass has finished.
+    /// Set when the post-scan Spotlight pass finishes.
     pub spotlight_done: bool,
     pub spotlight_hits: u64,
 }
 
-/// Memoised id list for whatever the tables are currently showing, so that
-/// scrolling pages through a result set instead of recomputing it per frame.
+/// Memoised id list for the current table view, so scrolling pages through a
+/// result set instead of recomputing it.
 ///
-/// The totals are computed once with the list, not per page — otherwise every
-/// scroll event would walk a multi-million-entry selection again.
+/// Totals are computed once with the list, not per page: otherwise every
+/// scroll would walk a multi-million-entry selection again.
 #[derive(Default)]
 pub struct ViewCache {
     key: Option<String>,
@@ -132,6 +135,7 @@ impl ViewCache {
 }
 
 pub struct AppState {
+    pub config_dir: RwLock<Option<PathBuf>>,
     pub index: RwLock<Option<ScanIndex>>,
     pub progress: RwLock<ScanProgress>,
     pub settings: RwLock<Settings>,
@@ -145,6 +149,7 @@ pub struct AppState {
 impl Default for AppState {
     fn default() -> Self {
         Self {
+            config_dir: RwLock::new(None),
             index: RwLock::new(None),
             progress: RwLock::new(ScanProgress::default()),
             settings: RwLock::new(Settings::default()),
@@ -165,6 +170,26 @@ impl AppState {
 
     pub fn bump(&self) -> u64 {
         self.generation.fetch_add(1, Ordering::SeqCst) + 1
+    }
+}
+
+const SETTINGS_FILE: &str = "settings.json";
+
+/// Settings live in the app config directory so a choice like the interface
+/// language survives a restart.
+pub fn load_settings(dir: &std::path::Path) -> Settings {
+    std::fs::read_to_string(dir.join(SETTINGS_FILE))
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+pub fn save_settings(dir: &std::path::Path, s: &Settings) {
+    if std::fs::create_dir_all(dir).is_err() {
+        return;
+    }
+    if let Ok(json) = serde_json::to_string_pretty(s) {
+        let _ = std::fs::write(dir.join(SETTINGS_FILE), json);
     }
 }
 
@@ -321,8 +346,8 @@ pub fn spawn_scan(app: AppHandle, state: Arc<AppState>, root: PathBuf, volume_na
 
 /// Ask Spotlight for `kMDItemLastUsedDate` on the largest files.
 ///
-/// Only the top slice is looked up: those are the rows a person actually acts
-/// on, and a full-drive lookup would cost far more than it is worth.
+/// Only the top slice: those are the rows anyone acts on, and a whole-drive
+/// lookup costs far more than it returns.
 #[cfg(target_os = "macos")]
 fn enrich_with_spotlight(app: AppHandle, state: Arc<AppState>, cancel: Arc<AtomicBool>) {
     use rayon::prelude::*;
@@ -361,9 +386,9 @@ fn enrich_with_spotlight(app: AppHandle, state: Arc<AppState>, cancel: Arc<Atomi
             f.last_used = t;
             f.flags |= flags::USED_FROM_SPOTLIGHT;
         }
-        // Re-roll the subtree usage totals now that leaves have better data.
+        // Re-roll subtree totals now that the leaves have better data.
         ix.aggregate();
-        // Bundle stand-ins inherit the newest usage found inside them.
+        // Stand-ins inherit the newest usage found inside the bundle.
         let pairs: Vec<(u32, u32)> = ix.dir_of_synthetic.iter().map(|(a, b)| (*a, *b)).collect();
         for (fid, dir) in pairs {
             let d = &ix.dirs[dir as usize];
@@ -393,7 +418,7 @@ fn enrich_with_spotlight(app: AppHandle, state: Arc<AppState>, cancel: Arc<Atomi
 #[cfg(not(target_os = "macos"))]
 fn enrich_with_spotlight(_app: AppHandle, _state: Arc<AppState>, _cancel: Arc<AtomicBool>) {}
 
-/// Everything the header strip needs about the scanned volume.
+/// What the header strip needs about the scanned volume.
 #[derive(Serialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct DriveSummary {

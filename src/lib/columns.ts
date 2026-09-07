@@ -1,14 +1,13 @@
 /**
- * Column fitting.
- *
- * The recommended widths assume a 1440-wide window, but the tables live inside
- * draggable panes. Rather than let columns overflow or crush the Name column,
- * lower-priority columns drop out as the pane narrows — Name, Size and Unused
- * For always survive, because they are the three the app exists to show.
+ * Column fitting. Tables live in draggable panes, so lower-priority columns
+ * drop out as a pane narrows rather than overflowing or crushing Name. Name,
+ * Size and Unused For always survive.
  */
+import type { Key } from "./i18n";
+
 export interface ColumnDef<K extends string, S extends string = string> {
   key: K;
-  label: string;
+  labelKey: Key;
   /** Fixed width, or the minimum width when `flex` is set. */
   width: number;
   flex?: boolean;
@@ -17,7 +16,6 @@ export interface ColumnDef<K extends string, S extends string = string> {
   priority: number;
   required?: boolean;
   sortKey?: S;
-  title?: string;
 }
 
 export function fitColumns<K extends string, S extends string>(

@@ -1,13 +1,11 @@
 /**
  * Browser development harness.
  *
- * Outside the Tauri shell there is no Rust side, so the app talks to this
- * instead: a small in-memory index over a fixture tree that deliberately
- * includes the awkward cases — very long names, Japanese, emoji, empty folders,
- * unreadable folders, iCloud placeholders, bundles and hard links — so the
- * layout can be reviewed against them without running a real scan.
- *
- * It is only reachable when `window.__TAURI_INTERNALS__` is absent.
+ * Outside the Tauri shell there is no Rust side, so the app talks to this: a
+ * small in-memory index over a fixture tree covering the awkward cases (long
+ * names, Japanese, emoji, empty and unreadable folders, iCloud placeholders,
+ * bundles, hard links). Only reachable when `window.__TAURI_INTERNALS__` is
+ * absent.
  */
 import type {
   DeniedInfo,
@@ -561,6 +559,7 @@ function buildTreemap(dirId: number, w: number, h: number, budget: number): Tree
 
 // ------------------------------------------------------------------ facade
 let settings: Settings = {
+  language: "auto",
   sizeBasis: "allocated",
   groupBundles: true,
   followSymlinks: false,

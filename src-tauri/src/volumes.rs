@@ -1,5 +1,5 @@
-//! Mounted volumes: what we can scan, how big it is, and where one volume ends
-//! and another begins.
+//! Mounted volumes: what can be scanned, how big it is, and where one volume
+//! ends and another begins.
 
 use std::collections::HashSet;
 use std::ffi::{CStr, CString};
@@ -21,12 +21,12 @@ pub struct Mount {
 }
 
 impl Mount {
-    /// `/dev/disk3s5` and `/dev/disk3s1s1` share the container `disk3`: on a
-    /// modern Mac the System and Data volumes are two members of one group and
-    /// must be walked together.
+    /// `/dev/disk3s5` and `/dev/disk3s1s1` share the container `disk3`. The
+    /// System and Data volumes are two members of one group and must be walked
+    /// together.
     pub fn container(&self) -> Option<String> {
-        // "disk3s1s1" -> "disk3": the name is a word followed by the container
-        // number, then one slice suffix per nesting level.
+        // "disk3s1s1" -> "disk3": a word, the container number, then one
+        // slice suffix per nesting level.
         let dev = self.from.strip_prefix("/dev/")?;
         let b = dev.as_bytes();
         let mut end = 0;
@@ -76,7 +76,7 @@ impl MountTable {
                 }
             }
         }
-        // statfs does not carry st_dev, so take it from the mount point itself.
+        // statfs carries no st_dev, so take it from the mount point.
         for m in mounts.iter_mut() {
             if let Some((dev, _)) = stat_dev_ino(&m.mount_point) {
                 m.dev = dev;
@@ -98,12 +98,11 @@ impl MountTable {
             .max_by_key(|m| m.mount_point.len())
     }
 
-    /// Device ids the walker is allowed to descend onto.
+    /// Device ids the walker may descend onto. Empty means no restriction.
     ///
-    /// Empty means "no restriction". Otherwise it is the scan root's own volume
-    /// plus its siblings in the same APFS container — which is what makes
-    /// `/Users` (Data volume, firmlinked under a read-only System volume)
-    /// reachable while an unrelated external disk under `/Volumes` is not.
+    /// Otherwise: the scan root's volume plus its siblings in the same APFS
+    /// container. That keeps `/Users` reachable (Data volume, firmlinked under
+    /// a read-only System volume) while excluding an unrelated external disk.
     pub fn devices_for_scan(&self, root: &Path, cross_volumes: bool) -> HashSet<i64> {
         if cross_volumes {
             return HashSet::new();
@@ -126,7 +125,7 @@ impl MountTable {
     }
 }
 
-/// A volume as offered in the toolbar picker.
+/// A volume in the toolbar picker.
 #[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct VolumeInfo {
@@ -150,15 +149,14 @@ pub fn list_volumes() -> Vec<VolumeInfo> {
             continue;
         }
         let is_root = m.mount_point == "/";
-        // The System and Data volumes of the boot group are one disk to a user;
-        // show only "/" for them.
+        // The System and Data volumes of the boot group read as one disk.
         if !is_root && m.mount_point.starts_with("/System/Volumes") {
             continue;
         }
         if !is_root && !m.mount_point.starts_with("/Volumes/") {
             continue;
         }
-        // Skip the sealed helper volumes Apple mounts under /Volumes.
+        // Sealed helper volumes Apple mounts under /Volumes.
         if matches!(
             m.mount_point.as_str(),
             "/Volumes/Recovery" | "/Volumes/Preboot" | "/Volumes/VM" | "/Volumes/Update"
@@ -176,9 +174,8 @@ pub fn list_volumes() -> Vec<VolumeInfo> {
                 .to_string()
         };
 
-        // On an APFS boot group, "/" reports the read-only System volume's
-        // numbers. The user-visible capacity is the shared container, which the
-        // Data volume reports.
+        // On an APFS boot group, "/" reports the read-only System volume. The
+        // user-visible capacity is the container, which the Data volume knows.
         let (total, free) = if is_root {
             boot_group_capacity(&table).unwrap_or((m.total, m.available))
         } else {
@@ -215,7 +212,7 @@ pub fn list_volumes() -> Vec<VolumeInfo> {
     out
 }
 
-/// Capacity of the whole boot APFS container, as seen through its Data volume.
+/// Capacity of the boot APFS container, as its Data volume reports it.
 fn boot_group_capacity(table: &MountTable) -> Option<(u64, u64)> {
     let data = table
         .mounts
@@ -225,7 +222,7 @@ fn boot_group_capacity(table: &MountTable) -> Option<(u64, u64)> {
 }
 
 pub fn boot_volume_name() -> String {
-    // /Volumes holds a symlink named after the boot volume pointing at "/".
+    // /Volumes holds a symlink named after the boot volume, pointing at "/".
     if let Ok(entries) = std::fs::read_dir("/Volumes") {
         for e in entries.flatten() {
             let p = e.path();

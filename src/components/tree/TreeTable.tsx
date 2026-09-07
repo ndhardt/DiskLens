@@ -1,6 +1,7 @@
 import { useMemo, useRef } from "react";
 import { fitColumns, type ColumnDef } from "../../lib/columns";
 import { bytes, CATEGORY_COLOR, count, dateOnly } from "../../lib/format";
+import { useI18n, type T } from "../../lib/i18n";
 import { useElementSize, usePagedRows } from "../../lib/hooks";
 import { api } from "../../lib/api";
 import type { TreeRow, TreeSort, TreeSortKey } from "../../lib/types";
@@ -20,17 +21,20 @@ type Key =
   | "unused";
 
 const COLUMNS: ColumnDef<Key, TreeSortKey>[] = [
-  { key: "name", label: "Name", width: 220, flex: true, priority: 100, required: true, sortKey: "name" },
-  { key: "pct", label: "% Parent", width: 86, num: true, priority: 60, sortKey: "pctParent" },
-  { key: "size", label: "Size", width: 98, num: true, priority: 95, required: true, sortKey: "size" },
-  { key: "alloc", label: "Allocated", width: 98, num: true, priority: 20, sortKey: "allocated" },
-  { key: "files", label: "Files", width: 68, num: true, priority: 40, sortKey: "files" },
-  { key: "folders", label: "Folders", width: 68, num: true, priority: 30, sortKey: "folders" },
-  { key: "lastUsed", label: "Last Used", width: 126, num: true, priority: 50, sortKey: "lastUsed" },
-  { key: "unused", label: "Unused For", width: 100, num: true, priority: 90, required: true, sortKey: "unusedFor" },
+  { key: "name", labelKey: "col.name", width: 220, flex: true, priority: 100, required: true, sortKey: "name" },
+  { key: "pct", labelKey: "col.pctParent", width: 86, num: true, priority: 60, sortKey: "pctParent" },
+  { key: "size", labelKey: "col.size", width: 98, num: true, priority: 95, required: true, sortKey: "size" },
+  { key: "alloc", labelKey: "col.allocated", width: 98, num: true, priority: 20, sortKey: "allocated" },
+  { key: "files", labelKey: "col.files", width: 68, num: true, priority: 40, sortKey: "files" },
+  { key: "folders", labelKey: "col.folders", width: 68, num: true, priority: 30, sortKey: "folders" },
+  { key: "lastUsed", labelKey: "col.lastUsed", width: 126, num: true, priority: 50, sortKey: "lastUsed" },
+  { key: "unused", labelKey: "col.unusedFor", width: 100, num: true, priority: 90, required: true, sortKey: "unusedFor" },
 ];
 
 interface Props {
+  rootName: string;
+  folders: number;
+  totalSize: number;
   generation: number;
   sort: TreeSort;
   onSort: (s: TreeSort) => void;
@@ -44,6 +48,9 @@ interface Props {
 }
 
 export function TreeTable({
+  rootName,
+  folders,
+  totalSize,
   generation,
   sort,
   onSort,
@@ -55,6 +62,7 @@ export function TreeTable({
   version,
   onToggle,
 }: Props) {
+  const { t } = useI18n();
   const [wrapRef, size] = useElementSize<HTMLDivElement>();
   const bodyRef = useRef<HTMLDivElement | null>(null);
 
@@ -75,7 +83,7 @@ export function TreeTable({
       {cols.map((c) => (
         <Th
           key={c.key}
-          label={c.label}
+          label={t(c.labelKey)}
           width={c.width}
           flex={c.flex}
           num={c.num}
@@ -95,6 +103,17 @@ export function TreeTable({
 
   return (
     <div className="pane" ref={wrapRef} style={{ flex: "1 1 auto" }}>
+      {/* The file list has a caption, so this pane needs one or the two column
+          headers sit at different heights. */}
+      <div className="pane__caption">
+        <span>{t("cap.folders")}</span>
+        <span className="pane__caption-sep">·</span>
+        <span title={rootName}>{rootName}</span>
+        <span className="pane__caption-sep">·</span>
+        <span>
+          <b>{count(folders)}</b> {t("status.folders")} · <b>{bytes(totalSize, 1)}</b>
+        </span>
+      </div>
       <VirtualTable
         rowHeight={25}
         total={rows.total}
@@ -104,10 +123,8 @@ export function TreeTable({
         bodyRef={bodyRef}
         empty={
           <div className="empty">
-            <div className="empty__title">Nothing scanned yet</div>
-            <div>
-              Pick a volume and press <kbd>Scan</kbd>.
-            </div>
+            <div className="empty__title">{t("empty.noScan")}</div>
+            <div>{t("empty.pressScan")}</div>
           </div>
         }
         renderRow={(i, top) => {
@@ -121,6 +138,7 @@ export function TreeTable({
               cols={cols}
               selected={selected === r.id}
               now={now}
+              t={t}
               onSelect={onSelect}
               onContext={onContext}
               onToggle={onToggle}
@@ -138,6 +156,7 @@ function TreeRowView({
   cols,
   selected,
   now,
+  t,
   onSelect,
   onContext,
   onToggle,
@@ -147,6 +166,7 @@ function TreeRowView({
   cols: ColumnDef<Key, TreeSortKey>[];
   selected: boolean;
   now: number;
+  t: T;
   onSelect: (r: TreeRow) => void;
   onContext: (r: TreeRow, e: React.MouseEvent) => void;
   onToggle: (id: number, expanded: boolean) => void;
@@ -190,11 +210,11 @@ function TreeRowView({
                 </span>
                 <span className="cell__label">{row.name}</span>
                 {row.denied && (
-                  <span className="badge badge--lock" title="No permission to read this folder">
+                  <span className="badge badge--lock" title={t("tip.denied")}>
                     <IconLock />
                   </span>
                 )}
-                {row.package && <span className="badge">bundle</span>}
+                {row.package && <span className="badge">{t("tip.bundle")}</span>}
               </div>
             );
           case "pct":

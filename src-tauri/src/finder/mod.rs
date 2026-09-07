@@ -1,4 +1,4 @@
-//! Handing an item back to the system: Finder, Quick Look, default app.
+//! Handing an item to the system: Finder, Quick Look, default app.
 
 use std::process::Command;
 
@@ -20,8 +20,8 @@ pub fn reveal_in_finder(path: &str) -> Result<(), String> {
     spawn("/usr/bin/open", &["-R", path])
 }
 
-/// Quick Look preview. `qlmanage -p` is the supported way to do this from a
-/// sandbox-free process without linking the Quick Look UI framework.
+/// Quick Look preview via `qlmanage -p`, which avoids linking the Quick Look
+/// UI framework.
 pub fn quick_look(path: &str) -> Result<(), String> {
     ensure_exists(path)?;
     Command::new("/usr/bin/qlmanage")

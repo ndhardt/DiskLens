@@ -1,5 +1,5 @@
-//! Timestamps straight from `lstat`. Always available, never as good as
-//! Spotlight for answering "when did I last *use* this".
+//! Timestamps from `lstat`. Always available, weaker than Spotlight for
+//! answering when a file was last used.
 
 use super::UsageMetadata;
 use crate::model::LastUsedSource;

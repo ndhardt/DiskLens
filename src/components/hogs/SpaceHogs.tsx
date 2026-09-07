@@ -1,14 +1,15 @@
 import { bytes, count } from "../../lib/format";
 import type { PagedRows } from "../../lib/hooks";
+import { useI18n, type Key } from "../../lib/i18n";
 import type { FileRow, HogMode, SortSpec } from "../../lib/types";
 import { FileTable, HOG_COLUMNS } from "../common/FileTable";
 
-const MODE_LABEL: Record<HogMode, string> = {
-  largestFirst: "BIGGEST ITEMS",
-  longestUnused: "LONGEST UNUSED",
-  largestAndUnused: "LARGEST + UNUSED",
-  recentlyUsed: "RECENTLY USED",
-  recentlyModified: "RECENTLY MODIFIED",
+const MODE_TITLE: Record<HogMode, Key> = {
+  largestFirst: "hog.title.largestFirst",
+  longestUnused: "hog.title.longestUnused",
+  largestAndUnused: "hog.title.largestAndUnused",
+  recentlyUsed: "hog.title.recentlyUsed",
+  recentlyModified: "hog.title.recentlyModified",
 };
 
 interface Props {
@@ -44,13 +45,14 @@ export function SpaceHogs({
   query,
   hasIndex,
 }: Props) {
+  const { t } = useI18n();
   return (
     <div className="pane" style={{ flex: "1 1 auto" }}>
       <div className="pane__caption">
-        <span>{MODE_LABEL[mode]}</span>
+        <span>{t(MODE_TITLE[mode])}</span>
         <span className="pane__caption-sep">·</span>
         <span>
-          <b>{count(rows.total)}</b> items
+          <b>{t("cap.items", { n: count(rows.total) })}</b>
         </span>
         <span className="pane__caption-sep">·</span>
         <span>
@@ -59,13 +61,13 @@ export function SpaceHogs({
         {mode === "largestAndUnused" && (
           <>
             <span className="pane__caption-sep">·</span>
-            <span>ranked by review priority — size weighted by how long untouched</span>
+            <span>{t("hog.note")}</span>
           </>
         )}
         {query && (
           <>
             <span className="pane__caption-sep">·</span>
-            <span>matching “{query}”</span>
+            <span>{t("cap.matching", { q: query })}</span>
           </>
         )}
       </div>
@@ -87,13 +89,9 @@ export function SpaceHogs({
         empty={
           <div className="empty">
             <div className="empty__title">
-              {hasIndex ? "Nothing matches" : "Nothing scanned yet"}
+              {hasIndex ? t("empty.noMatch") : t("empty.noScan")}
             </div>
-            <div>
-              {hasIndex
-                ? "Try a wider filter, or clear the search."
-                : "Pick a volume and press Scan."}
-            </div>
+            <div>{hasIndex ? t("empty.widen") : t("empty.pressScan")}</div>
           </div>
         }
       />

@@ -1,14 +1,14 @@
-//! macOS bulk scanner built on `getattrlistbulk(2)`.
+//! Bulk scanner built on `getattrlistbulk(2)`.
 //!
-//! The standard scanner pays one `lstat` syscall per entry. This one asks the
-//! kernel for a whole directory's worth of names *and* metadata in a single
-//! call, which is where almost all of the speedup on APFS comes from.
+//! The standard scanner costs one `lstat` per entry. This one gets a whole
+//! directory of names and metadata in a single syscall, which is where the
+//! speedup on APFS comes from.
 //!
-//! The attribute buffer is packed with no alignment padding — each requested
-//! attribute follows the previous one byte-for-byte, in ascending bit order
-//! within each group, with `ATTR_CMN_RETURNED_ATTRS` first. Which groups are
-//! present varies per entry (a directory carries no `fileattr` block), so the
-//! buffer has to be walked with a cursor rather than cast to a struct.
+//! The attribute buffer is packed with no alignment padding: each attribute
+//! follows the previous byte-for-byte, in ascending bit order within its
+//! group, with `ATTR_CMN_RETURNED_ATTRS` first. Which groups appear varies per
+//! entry (a directory carries no `fileattr` block), so the buffer must be
+//! walked with a cursor rather than cast to a struct.
 
 #![cfg(target_os = "macos")]
 
@@ -28,8 +28,8 @@ const ATTR_CMN_ERROR: libc::attrgroup_t = 0x2000_0000;
 
 const BUF_SIZE: usize = 256 * 1024;
 
-/// Set to false if the runtime self-check ever fails, so we degrade to the
-/// portable scanner instead of reporting numbers that are quietly wrong.
+/// Cleared if the self-check fails, so a mismatch degrades to the portable
+/// scanner instead of reporting wrong numbers.
 static USABLE: AtomicBool = AtomicBool::new(true);
 
 pub fn available() -> bool {
@@ -105,7 +105,7 @@ impl<'a> Cursor<'a> {
     fn i64(&mut self) -> Option<i64> {
         Some(i64::from_ne_bytes(self.take(8)?.try_into().ok()?))
     }
-    /// `struct timespec` — two 64-bit words on arm64 and x86_64.
+    /// `struct timespec`: two 64-bit words on arm64 and x86_64.
     #[inline]
     fn timespec(&mut self) -> Option<i64> {
         let secs = self.i64()?;
@@ -186,8 +186,8 @@ fn parse_entry(entry: &[u8]) -> Option<RawEntry> {
     let returned_file = c.u32()?;
     let _returned_fork = c.u32()?;
 
-    // ATTR_CMN_ERROR is packed straight after the returned set, out of bit
-    // order, and is non-zero when the kernel could not describe this entry.
+    // ATTR_CMN_ERROR is packed right after the returned set, out of bit order,
+    // and is non-zero when the kernel could not describe this entry.
     if returned_common & ATTR_CMN_ERROR != 0 {
         let err = c.u32()?;
         if err != 0 {
@@ -198,7 +198,7 @@ fn parse_entry(entry: &[u8]) -> Option<RawEntry> {
     if returned_common & libc::ATTR_CMN_NAME == 0 {
         return None;
     }
-    // attrreference_t: the offset is relative to the field's own address.
+    // attrreference_t offsets are relative to the field's own address.
     let name_field_at = c.at;
     let data_off = c.i32()?;
     let data_len = c.u32()? as usize;
@@ -248,9 +248,8 @@ fn parse_entry(entry: &[u8]) -> Option<RawEntry> {
         0
     };
 
-    // Only files carry a `fileattr` block. `nlink` is meaningless for
-    // directories here — APFS reports their real on-disk link count as 1 while
-    // `lstat` synthesizes the POSIX 2 — and nothing consults it for them.
+    // Only files carry a `fileattr` block, and nothing reads nlink for a
+    // directory.
     let nlink = if returned_file & libc::ATTR_FILE_LINKCOUNT != 0 {
         c.u32()?
     } else {
@@ -303,11 +302,10 @@ fn errno_to_read_error() -> ReadError {
     }
 }
 
-/// Cross-check the bulk scanner against `lstat` on a directory we control.
+/// Cross-check the bulk scanner against `lstat` on a directory of our own.
 ///
-/// Run once at startup: if the packed layout ever stops matching what this
-/// parser expects, the fast path turns itself off rather than reporting sizes
-/// that are quietly wrong.
+/// Run once at startup. If the packed layout stops matching what this parser
+/// expects, the fast path disables itself.
 pub fn self_check() -> bool {
     use super::DiskScanner;
 
@@ -340,8 +338,8 @@ pub fn self_check() -> bool {
                 && f.ino == s.ino
                 && f.size == s.size
                 && f.alloc == s.alloc
-                // Directory link counts legitimately differ between the two
-                // sources; only the file value is ever used.
+                // Directory link counts differ between the two sources; only
+                // the file value is used.
                 && (f.is_dir || f.nlink == s.nlink)
         });
     if !ok {

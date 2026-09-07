@@ -36,7 +36,8 @@ import { TreeTable } from "./components/tree/TreeTable";
 import { Treemap } from "./components/treemap/Treemap";
 import { FileTypes } from "./components/types/FileTypes";
 import { IconTreemap } from "./components/common/Icons";
-import { CATEGORY_COLOR, CATEGORY_LABEL } from "./lib/format";
+import { CATEGORY_COLOR, categoryLabel } from "./lib/format";
+import { I18nContext, makeT, resolveLang, type LangSetting } from "./lib/i18n";
 
 const EMPTY_PROGRESS: ScanProgress = {
   running: false,
@@ -96,8 +97,7 @@ export default function App() {
   const [scrollTo, setScrollTo] = useState<number | null>(null);
 
   const [menu, setMenu] = useState<MenuState | null>(null);
-  /// Bytes trashed since the last scan. The index still describes the old tree,
-  /// so say so rather than showing numbers that are quietly out of date.
+  // Bytes trashed since the scan. The index still describes the old tree.
   const [freedBytes, setFreedBytes] = useState(0);
   const [trash, setTrash] = useState<TrashPreview | null>(null);
   const [trashBusy, setTrashBusy] = useState(false);
@@ -112,6 +112,13 @@ export default function App() {
 
   const [now, setNow] = useState(() => Date.now() / 1000);
   const [winH, setWinH] = useState(() => window.innerHeight);
+
+  const lang = useMemo(
+    () => resolveLang((settings?.language ?? "auto") as LangSetting),
+    [settings?.language],
+  );
+  const i18n = useMemo(() => ({ lang, t: makeT(lang) }), [lang]);
+  const t = i18n.t;
   const searchRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -120,8 +127,7 @@ export default function App() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // Never let the Treemap take more than it is worth on a short window; the
-  // table is the thing being read.
+  // Cap the Treemap on a short window; the table is what gets read.
   const treemapHeight = Math.max(90, Math.min(treemapH, Math.round(winH * 0.45)));
 
   useEffect(() => {
@@ -224,7 +230,7 @@ export default function App() {
   const onRowMouseDown = useEvent((index: number, row: FileRow, e: React.MouseEvent) => {
     if (e.button === 2 && sel.ids.has(row.id)) {
       setFocusIndex(index);
-      return; // keep a multi-selection intact for a right-click
+      return; // keep a multi-selection intact for the context menu
     }
     const size = Math.max(row.alloc, row.size);
     setFocusIndex(index);
@@ -276,7 +282,7 @@ export default function App() {
     try {
       await navigator.clipboard.writeText(paths.join("\n"));
     } catch {
-      /* the webview denied clipboard access; nothing else to do */
+      // Clipboard access denied by the webview.
     }
   });
 
@@ -318,24 +324,26 @@ export default function App() {
     const ids: ItemRef[] = multi
       ? [...sel.ids].map((id) => ({ id, isDir: false }))
       : [{ id: row.id, isDir: false }];
-    const label = multi ? `${sel.ids.size} items` : `“${row.name}”`;
     const path = joinPath(row.dirPath, row.name);
+    const trashLabel = multi
+      ? t("menu.trashMany", { n: sel.ids.size })
+      : t("menu.trashOne", { name: row.name });
 
     setMenu({
       x: e.clientX,
       y: e.clientY,
       actions: [
-        { label: "Open", shortcut: "⌘O", onPick: () => void openPaths([path]) },
-        { label: "Quick Look", shortcut: "Space", onPick: () => void api.quickLook(path) },
-        { label: "Reveal in Finder", onPick: () => void api.revealItem(path) },
+        { label: t("menu.open"), shortcut: "⌘O", onPick: () => void openPaths([path]) },
+        { label: t("menu.quickLook"), shortcut: "Space", onPick: () => void api.quickLook(path) },
+        { label: t("menu.reveal"), onPick: () => void api.revealItem(path) },
         "sep",
         {
-          label: "Copy Path",
+          label: t("menu.copyPath"),
           shortcut: "⌘⌥C",
           onPick: async () => copyPaths(multi ? await selectedPaths() : [path]),
         },
         {
-          label: "Focus in Treemap",
+          label: t("menu.focusTreemap"),
           onPick: async () => {
             const dir = await api.locateFile(row.id);
             if (dir != null) focusTreemapOn(dir, row.dirPath.split("/").pop() ?? "");
@@ -343,13 +351,11 @@ export default function App() {
         },
         "sep",
         {
-          label: `Move ${label} to Trash`,
+          label: trashLabel,
           shortcut: "⌘⌫",
           danger: true,
           disabled: row.immutable,
-          title: row.immutable
-            ? "This belongs to macOS and cannot be moved to the Trash"
-            : undefined,
+          title: row.immutable ? t("menu.immutable") : undefined,
           onPick: () => void askTrash(ids),
         },
       ],
@@ -362,19 +368,17 @@ export default function App() {
       x: e.clientX,
       y: e.clientY,
       actions: [
-        { label: "Open", onPick: () => void api.openItem(row.path) },
-        { label: "Reveal in Finder", onPick: () => void api.revealItem(row.path) },
-        { label: "Copy Path", shortcut: "⌘⌥C", onPick: () => void copyPaths([row.path]) },
+        { label: t("menu.open"), onPick: () => void api.openItem(row.path) },
+        { label: t("menu.reveal"), onPick: () => void api.revealItem(row.path) },
+        { label: t("menu.copyPath"), shortcut: "⌘⌥C", onPick: () => void copyPaths([row.path]) },
         "sep",
-        { label: "Focus in Treemap", onPick: () => focusTreemapOn(row.id, row.name) },
+        { label: t("menu.focusTreemap"), onPick: () => focusTreemapOn(row.id, row.name) },
         "sep",
         {
-          label: `Move “${row.name}” to Trash`,
+          label: t("menu.trashOne", { name: row.name }),
           danger: true,
           disabled: row.immutable,
-          title: row.immutable
-            ? "This belongs to macOS and cannot be moved to the Trash"
-            : undefined,
+          title: row.immutable ? t("menu.immutable") : undefined,
           onPick: () => void askTrash([{ id: row.id, isDir: true }]),
         },
       ],
@@ -389,17 +393,17 @@ export default function App() {
         x: e.clientX,
         y: e.clientY,
         actions: [
-          { label: "Open", onPick: () => void api.openItem(d.path) },
-          { label: "Quick Look", onPick: () => void api.quickLook(d.path) },
-          { label: "Reveal in Finder", onPick: () => void api.revealItem(d.path) },
-          { label: "Copy Path", onPick: () => void copyPaths([d.path]) },
+          { label: t("menu.open"), onPick: () => void api.openItem(d.path) },
+          { label: t("menu.quickLook"), onPick: () => void api.quickLook(d.path) },
+          { label: t("menu.reveal"), onPick: () => void api.revealItem(d.path) },
+          { label: t("menu.copyPath"), onPick: () => void copyPaths([d.path]) },
           "sep",
           ...(rect.isDir
-            ? [{ label: "Zoom in here", onPick: () => focusTreemapOn(rect.id, rect.name) }]
+            ? [{ label: t("menu.zoomHere"), onPick: () => focusTreemapOn(rect.id, rect.name) }]
             : []),
           "sep" as const,
           {
-            label: "Move to Trash",
+            label: t("menu.trash"),
             danger: true,
             disabled: d.immutable,
             onPick: () => void askTrash([{ id: rect.id, isDir: rect.isDir }]),
@@ -576,6 +580,7 @@ export default function App() {
   });
 
   return (
+    <I18nContext.Provider value={i18n}>
     <div className="app">
       <Toolbar
         volumes={volumes}
@@ -629,6 +634,9 @@ export default function App() {
         {mode === "tree" && (
           <>
             <TreeTable
+              rootName={summary?.name ?? volume?.name ?? "—"}
+              folders={summary?.folders ?? 0}
+              totalSize={summary?.scannedAlloc ?? 0}
               generation={generation}
               sort={treeSort}
               onSort={async (s) => {
@@ -731,7 +739,7 @@ export default function App() {
                 el.addEventListener("pointerup", up);
               }}
             />
-            <span className="treemap-head__title">TREEMAP</span>
+            <span className="treemap-head__title">{t("treemap.title")}</span>
             <IconTreemap />
             <span className="treemap-head__path">
               {treemapRootName ?? volume?.name ?? "—"}
@@ -744,7 +752,7 @@ export default function App() {
                   setTreemapRootName(null);
                 }}
               >
-                Whole volume
+                {t("treemap.whole")}
               </button>
             )}
             <span className="treemap-head__spacer" />
@@ -754,7 +762,7 @@ export default function App() {
               ).map((c) => (
                 <span className="legend__item" key={c}>
                   <span className="dot" style={{ background: CATEGORY_COLOR[c] }} />
-                  {CATEGORY_LABEL[c]}
+                  {categoryLabel(c, t)}
                 </span>
               ))}
             </div>
@@ -808,6 +816,7 @@ export default function App() {
         />
       )}
     </div>
+    </I18nContext.Provider>
   );
 }
 

@@ -6,7 +6,7 @@ interface Props {
   onDoubleClick?: () => void;
 }
 
-/** A 4px drag handle. Vertical splits columns; horizontal splits rows. */
+/** A 4px drag handle. */
 export function Splitter({ orientation, onDelta, onDoubleClick }: Props) {
   const [active, setActive] = useState(false);
   const last = useRef(0);

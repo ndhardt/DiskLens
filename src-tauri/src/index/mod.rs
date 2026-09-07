@@ -1,8 +1,7 @@
 //! The in-memory index produced by a scan.
 //!
-//! Everything the UI asks for is answered from here: tree rows, file rows,
-//! Space Hogs rankings, extension aggregates and Treemap layouts. The frontend
-//! only ever receives the window it is about to paint.
+//! Answers every UI query: tree rows, file rows, rankings, extension
+//! aggregates and Treemap layouts.
 
 pub mod directories;
 pub mod extensions;
@@ -38,8 +37,8 @@ pub struct ScanIndex {
     pub volume_total: u64,
     pub volume_free: u64,
 
-    /// Files sorted by size descending — the backbone of Space Hogs and search.
-    /// Built once at the end of a scan.
+    /// Files sorted by size descending. Built once at the end of a scan and
+    /// used by the ranking view and search.
     pub by_size: Vec<u32>,
     /// `by_size` with bundle contents rolled into their bundle.
     pub items_grouped: Vec<u32>,
@@ -51,8 +50,8 @@ pub struct ScanIndex {
     /// Number of real files, excluding synthetic bundle rows.
     pub real_files: u64,
 
-    /// Tree expansion state lives in Rust so the frontend never has to hold or
-    /// ship a multi-million-entry set.
+    /// Expansion state, kept here so the frontend never ships a
+    /// multi-million-entry set across the IPC boundary.
     pub expanded: Vec<bool>,
 
     /// Cached flattened tree rows; invalidated on expand/collapse or re-sort.
@@ -170,8 +169,8 @@ impl ScanIndex {
         self.dir_path(self.files[id as usize].parent)
     }
 
-    /// Aggregate the whole tree bottom-up. Directories were appended in BFS
-    /// order during the walk, so iterating backwards visits children first.
+    /// Aggregate bottom-up. Directories were appended in BFS order, so
+    /// iterating backwards visits children first.
     pub fn aggregate(&mut self) {
         for i in (0..self.dirs.len()).rev() {
             let (mut size, mut alloc, mut nfiles) = (0u64, 0u64, 0u64);
@@ -179,8 +178,7 @@ impl ScanIndex {
             let mut newest_mtime = self.dirs[i].mtime;
             for &fid in &self.dirs[i].files {
                 let f = &self.files[fid as usize];
-                // A hard link we have already counted contributes logical size
-                // but no additional physical bytes.
+                // A hard link already counted adds logical size only.
                 size += f.size;
                 if !f.has(flags::IS_HARDLINK_DUP) {
                     alloc += f.alloc;
@@ -211,8 +209,8 @@ impl ScanIndex {
         }
     }
 
-    /// Sort every directory's children and files by allocated size descending,
-    /// so the tree reads "biggest first" at every level while staying nested.
+    /// Sort children and files by allocated size descending, so the tree reads
+    /// biggest-first at every level while staying nested.
     pub fn sort_children_by_size(&mut self) {
         let dir_keys: Vec<u64> = self.dirs.iter().map(|d| d.agg_alloc.max(d.agg_size)).collect();
         let file_keys: Vec<u64> = self.files.iter().map(|f| f.alloc.max(f.size)).collect();
@@ -251,11 +249,9 @@ impl ScanIndex {
         self.cleanup_norm = best;
     }
 
-    /// Give every outermost bundle a single stand-in row.
-    ///
-    /// A `.photoslibrary` or `.app` is one thing to a person, so Space Hogs
-    /// ranks the bundle rather than the thousands of files inside it. The real
-    /// files stay in the index — the Tree and the file list still show them.
+    /// Give every outermost bundle a single stand-in row, so rankings list
+    /// the bundle rather than the files inside it. The real files stay in the
+    /// index and the Tree still shows them.
     fn build_package_items(&mut self) {
         self.real_files = self.files.len() as u64;
         let outermost: Vec<u32> = (0..self.dirs.len() as u32)
@@ -327,7 +323,7 @@ impl ScanIndex {
         }
     }
 
-    /// Where a row should point when the user asks to reveal it.
+    /// Path a row points at when revealed.
     pub fn item_path(&self, id: u32) -> String {
         match self.dir_of_synthetic.get(&id) {
             Some(&dir) => self.dir_path(dir),

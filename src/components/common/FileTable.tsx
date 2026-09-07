@@ -1,13 +1,8 @@
 import { useMemo, useRef } from "react";
 import { fitColumns, type ColumnDef } from "../../lib/columns";
-import {
-  bytes,
-  CATEGORY_COLOR,
-  count,
-  dateTime,
-  pct,
-} from "../../lib/format";
+import { bytes, CATEGORY_COLOR, categoryLabel, count, dateTime, pct } from "../../lib/format";
 import { useElementSize, type PagedRows } from "../../lib/hooks";
+import { useI18n, type T } from "../../lib/i18n";
 import type { FileRow, SortKey, SortSpec } from "../../lib/types";
 import { ScoreCell, UnusedCell } from "./Cells";
 import { IconCloud, IconFile, IconFolder, IconLock } from "./Icons";
@@ -30,27 +25,27 @@ export type FileColKey =
   | "score";
 
 export const FILE_LIST_COLUMNS: ColumnDef<FileColKey, SortKey>[] = [
-  { key: "name", label: "Name", width: 170, flex: true, priority: 100, required: true, sortKey: "name" },
-  { key: "size", label: "Size", width: 90, num: true, priority: 99, required: true, sortKey: "size" },
-  { key: "alloc", label: "Allocated", width: 90, num: true, priority: 30, sortKey: "allocated" },
-  { key: "unused", label: "Unused For", width: 105, num: true, priority: 98, required: true, sortKey: "unusedFor" },
-  { key: "lastUsed", label: "Last Used", width: 140, num: true, priority: 70, sortKey: "lastUsed" },
-  { key: "modified", label: "Modified", width: 140, num: true, priority: 50, sortKey: "modified" },
-  { key: "created", label: "Created", width: 140, num: true, priority: 20, sortKey: "created" },
-  { key: "ext", label: "Extension", width: 80, priority: 60, sortKey: "extension" },
-  { key: "path", label: "Path", width: 120, flex: true, priority: 10, sortKey: "path" },
+  { key: "name", labelKey: "col.name", width: 170, flex: true, priority: 100, required: true, sortKey: "name" },
+  { key: "size", labelKey: "col.size", width: 90, num: true, priority: 99, required: true, sortKey: "size" },
+  { key: "alloc", labelKey: "col.allocated", width: 90, num: true, priority: 30, sortKey: "allocated" },
+  { key: "unused", labelKey: "col.unusedFor", width: 105, num: true, priority: 98, required: true, sortKey: "unusedFor" },
+  { key: "lastUsed", labelKey: "col.lastUsed", width: 140, num: true, priority: 70, sortKey: "lastUsed" },
+  { key: "modified", labelKey: "col.modified", width: 140, num: true, priority: 50, sortKey: "modified" },
+  { key: "created", labelKey: "col.created", width: 140, num: true, priority: 20, sortKey: "created" },
+  { key: "ext", labelKey: "col.extension", width: 80, priority: 60, sortKey: "extension" },
+  { key: "path", labelKey: "col.path", width: 120, flex: true, priority: 10, sortKey: "path" },
 ];
 
 export const HOG_COLUMNS: ColumnDef<FileColKey, SortKey>[] = [
-  { key: "rank", label: "#", width: 42, num: true, priority: 80, required: true },
-  { key: "name", label: "Name", width: 200, flex: true, priority: 100, required: true, sortKey: "name" },
-  { key: "size", label: "Size", width: 105, num: true, priority: 99, required: true, sortKey: "size" },
-  { key: "diskPct", label: "Disk %", width: 75, num: true, priority: 35, sortKey: "size" },
-  { key: "unused", label: "Unused For", width: 110, num: true, priority: 98, required: true, sortKey: "unusedFor" },
-  { key: "lastUsed", label: "Last Used", width: 145, num: true, priority: 70, sortKey: "lastUsed" },
-  { key: "path", label: "Path", width: 140, flex: true, priority: 65, sortKey: "path" },
-  { key: "kind", label: "Kind", width: 100, priority: 45, sortKey: "kind" },
-  { key: "score", label: "Cleanup Score", width: 110, priority: 75, sortKey: "cleanupScore" },
+  { key: "rank", labelKey: "col.rank", width: 42, num: true, priority: 80, required: true },
+  { key: "name", labelKey: "col.name", width: 200, flex: true, priority: 100, required: true, sortKey: "name" },
+  { key: "size", labelKey: "col.size", width: 105, num: true, priority: 99, required: true, sortKey: "size" },
+  { key: "diskPct", labelKey: "col.diskPct", width: 75, num: true, priority: 35, sortKey: "size" },
+  { key: "unused", labelKey: "col.unusedFor", width: 110, num: true, priority: 98, required: true, sortKey: "unusedFor" },
+  { key: "lastUsed", labelKey: "col.lastUsed", width: 145, num: true, priority: 70, sortKey: "lastUsed" },
+  { key: "path", labelKey: "col.path", width: 140, flex: true, priority: 65, sortKey: "path" },
+  { key: "kind", labelKey: "col.kind", width: 100, priority: 45, sortKey: "kind" },
+  { key: "score", labelKey: "col.cleanupScore", width: 110, priority: 75, sortKey: "cleanupScore" },
 ];
 
 interface Props {
@@ -88,6 +83,7 @@ export function FileTable({
   empty,
   focusIndex,
 }: Props) {
+  const { t } = useI18n();
   const [wrapRef, size] = useElementSize<HTMLDivElement>();
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const cols = useMemo(() => fitColumns(columns, size.width || 700), [columns, size.width]);
@@ -100,7 +96,7 @@ export function FileTable({
       {cols.map((c) => (
         <Th
           key={c.key}
-          label={c.label}
+          label={t(c.labelKey)}
           width={c.width}
           flex={c.flex}
           num={c.num}
@@ -144,6 +140,7 @@ export function FileTable({
               focused={focusIndex === i}
               barFraction={showSizeBar && rows.maxSize > 0 ? Math.max(r.alloc, r.size) / rows.maxSize : 0}
               now={now}
+              t={t}
               onMouseDown={onRowMouseDown}
               onContext={onContext}
               onActivate={onActivate}
@@ -164,6 +161,7 @@ function FileRowView({
   focused,
   barFraction,
   now,
+  t,
   onMouseDown,
   onContext,
   onActivate,
@@ -176,6 +174,7 @@ function FileRowView({
   focused: boolean;
   barFraction: number;
   now: number;
+  t: T;
   onMouseDown: (index: number, row: FileRow, e: React.MouseEvent) => void;
   onContext: (row: FileRow, e: React.MouseEvent) => void;
   onActivate: (row: FileRow) => void;
@@ -214,15 +213,12 @@ function FileRowView({
                 </span>
                 <span className="cell__label">{row.name}</span>
                 {row.cloud && (
-                  <span className="badge badge--cloud" title="Stored in iCloud — not using local space">
+                  <span className="badge badge--cloud" title={t("tip.cloud")}>
                     <IconCloud />
                   </span>
                 )}
                 {row.protected && (
-                  <span
-                    className="badge badge--lock"
-                    title="Part of the system or a shared library — review, do not clear out"
-                  >
+                  <span className="badge badge--lock" title={t("tip.protected")}>
                     <IconLock />
                   </span>
                 )}
@@ -285,7 +281,7 @@ function FileRowView({
               <div className="cell cell--dim" key={c.key} style={w}>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
                   <span className="dot" style={{ background: color }} />
-                  {row.kind}
+                  {categoryLabel(row.category, t)}
                 </span>
               </div>
             );

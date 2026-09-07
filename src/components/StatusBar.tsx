@@ -1,4 +1,5 @@
 import { bytes, count, duration } from "../lib/format";
+import { useI18n } from "../lib/i18n";
 import type { DeniedInfo, DriveSummary, ScanProgress } from "../lib/types";
 
 interface Props {
@@ -27,6 +28,7 @@ export function StatusBar({
   onRescan,
   onOpenFda,
 }: Props) {
+  const { t } = useI18n();
   const scanning = progress.running;
 
   return (
@@ -34,21 +36,21 @@ export function StatusBar({
       <span>
         {scanning ? (
           <>
-            <b className="num">{count(progress.files)}</b> files
+            <b className="num">{count(progress.files)}</b> {t("status.files")}
           </>
         ) : summary?.hasIndex ? (
           <>
-            <b className="num">{count(summary.files)}</b> files ·{" "}
-            <b className="num">{count(summary.folders)}</b> folders
+            <b className="num">{count(summary.files)}</b> {t("status.files")} ·{" "}
+            <b className="num">{count(summary.folders)}</b> {t("status.folders")}
           </>
         ) : (
-          "No scan yet"
+          t("status.noScan")
         )}
       </span>
 
       {visibleCount > 0 && !scanning && (
         <span>
-          <b className="num">{count(visibleCount)}</b> shown ·{" "}
+          <b className="num">{count(visibleCount)}</b> {t("status.shown")} ·{" "}
           <b className="num">{bytes(visibleBytes, 1)}</b>
         </span>
       )}
@@ -58,19 +60,22 @@ export function StatusBar({
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
             <span className="spinner" />
             <span>
-              Scanning {shorten(progress.current)} — {bytes(progress.alloc, 1)} analyzed
+              {t("status.scanning", {
+                path: shorten(progress.current),
+                size: bytes(progress.alloc, 1),
+              })}
             </span>
           </span>
         ) : progress.done ? (
           progress.cancelled ? (
-            `Scan stopped after ${duration(progress.elapsedMs)}`
+            t("status.stopped", { t: duration(progress.elapsedMs) })
           ) : (
             <>
-              Scan completed in {duration(progress.elapsedMs)}
+              {t("status.completed", { t: duration(progress.elapsedMs) })}
               {progress.spotlightDone
-                ? ` · ${count(progress.spotlightHits)} usage dates from Spotlight`
+                ? ` · ${t("status.spotlight", { n: count(progress.spotlightHits) })}`
                 : progress.scanner === "macos-getattrlistbulk"
-                  ? " · reading usage metadata…"
+                  ? ` · ${t("status.reading")}`
                   : ""}
             </>
           )
@@ -81,27 +86,27 @@ export function StatusBar({
 
       <span className="status__right">
         {freedBytes > 0 && !scanning && (
-          <span title="These items are in the Trash. The numbers above still describe the tree as it was scanned.">
-            Freed <b className="num">{bytes(freedBytes, 1)}</b> ·{" "}
+          <span title={t("status.staleHint")}>
+            {t("status.freed", { size: bytes(freedBytes, 1) })} ·{" "}
             <span className="status__link" onClick={onRescan}>
-              rescan to refresh
+              {t("status.rescanRefresh")}
             </span>
           </span>
         )}
         {selectionCount > 0 && (
           <span>
-            <b className="num">{count(selectionCount)}</b> selected ·{" "}
+            <b className="num">{count(selectionCount)}</b> {t("status.selected")} ·{" "}
             <b className="num">{bytes(selectionBytes, 1)}</b>
           </span>
         )}
         {denied && denied.count > 0 && (
           <span className="status__warn" title={denied.samples.join("\n")}>
-            Skipped <b className="num">{count(denied.count)}</b>
+            {t("status.skipped")} <b className="num">{count(denied.count)}</b>
             {!denied.fullDiskAccess && (
               <>
                 {" · "}
                 <span className="status__link" onClick={onOpenFda}>
-                  Grant Full Disk Access
+                  {t("status.grantFda")}
                 </span>
               </>
             )}
@@ -109,7 +114,7 @@ export function StatusBar({
         )}
         {scanning && progress.skipped > 0 && (
           <span className="status__warn">
-            Skipped <b className="num">{count(progress.skipped)}</b>
+            {t("status.skipped")} <b className="num">{count(progress.skipped)}</b>
           </span>
         )}
       </span>

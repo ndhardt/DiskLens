@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-/** A callback identity that never changes but always sees fresh state. */
+/** Stable callback identity that always sees fresh state. */
 export function useEvent<A extends unknown[], R>(fn: (...a: A) => R) {
   const ref = useRef(fn);
   useLayoutEffect(() => {
@@ -52,11 +52,9 @@ export interface PagedRows<T> {
 const PAGE = 200;
 
 /**
- * Windowed access to a result set that lives in Rust.
- *
- * Only the pages the viewport touches are ever fetched, so scrolling a
- * two-million-row table costs the same as scrolling a twenty-row one. `key`
- * identifies the selection; changing it drops the cache.
+ * Windowed access to a result set held in Rust. Only the pages the viewport
+ * touches are fetched. `key` identifies the selection; changing it drops the
+ * cache.
  */
 export function usePagedRows<T>(
   key: string,
@@ -85,7 +83,7 @@ export function usePagedRows<T>(
     const forKey = activeKey.current;
     fetcher(page * PAGE, PAGE)
       .then((res) => {
-        // A newer selection landed while this request was in flight.
+        // A newer selection landed mid-flight.
         if (activeKey.current !== forKey) return;
         pages.current.set(page, res.rows);
         meta.current = {
@@ -97,7 +95,7 @@ export function usePagedRows<T>(
         bump((n) => n + 1);
       })
       .catch(() => {
-        /* a failed page simply stays blank and can be retried by scrolling */
+        // A failed page stays blank and is retried on the next scroll.
       })
       .finally(() => {
         pending.current.delete(page);
@@ -108,7 +106,7 @@ export function usePagedRows<T>(
     const first = Math.max(0, Math.floor(start / PAGE));
     const last = Math.floor(Math.max(start, end - 1) / PAGE);
     for (let p = first; p <= last; p++) loadPage(p);
-    // Prefetch one page either side so fast scrolling stays filled in.
+    // Prefetch either side so fast scrolling stays filled.
     if (first > 0) loadPage(first - 1);
     loadPage(last + 1);
   });
@@ -148,7 +146,7 @@ export function useDebounced<T>(value: T, ms: number): T {
   return v;
 }
 
-/** Close a popover on outside click or Escape. */
+/** Dismiss a popover on outside click or Escape. */
 export function useDismiss(open: boolean, onClose: () => void) {
   const ref = useRef<HTMLDivElement | null>(null);
   const close = useEvent(onClose);
@@ -163,7 +161,7 @@ export function useDismiss(open: boolean, onClose: () => void) {
         close();
       }
     };
-    // `capture` so a click inside another popover still dismisses this one.
+    // Capture phase, so a click inside another popover still dismisses this.
     document.addEventListener("mousedown", onDown, true);
     document.addEventListener("keydown", onKey, true);
     return () => {

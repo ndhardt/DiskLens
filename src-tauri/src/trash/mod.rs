@@ -1,8 +1,7 @@
 //! Moving items to the Trash.
 //!
-//! Deletion in DiskLens is always `NSFileManager -trashItemAtURL:`. Nothing in
-//! this app ever calls `unlink`: a mistake has to be recoverable from the
-//! Finder, and the Trash is the only path that guarantees that.
+//! Deletion is always `NSFileManager -trashItemAtURL:`. Nothing here calls
+//! `unlink`, so a mistake stays recoverable from the Finder.
 
 use serde::Serialize;
 
@@ -54,7 +53,7 @@ pub fn move_to_trash(path: &str) -> Result<(), String> {
     Err(format!("Trash is only implemented on macOS ({path})"))
 }
 
-/// Size of a path on disk, used to report how much a delete actually freed.
+/// Size on disk, used to report how much a delete freed.
 pub fn size_on_disk(path: &str) -> u64 {
     use std::os::unix::fs::MetadataExt;
     let Ok(md) = std::fs::symlink_metadata(path) else {
@@ -63,7 +62,7 @@ pub fn size_on_disk(path: &str) -> u64 {
     if md.is_dir() {
         let mut total = 0u64;
         let mut stack = vec![std::path::PathBuf::from(path)];
-        // Bounded so a mistaken call on a huge tree cannot stall the UI thread.
+        // Bounded, so a call on a huge tree cannot stall the caller.
         let mut budget = 200_000u32;
         while let Some(p) = stack.pop() {
             let Ok(rd) = std::fs::read_dir(&p) else { continue };

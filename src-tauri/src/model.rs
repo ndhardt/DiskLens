@@ -1,13 +1,11 @@
-//! Core data model for the DiskLens index.
+//! Core types for the scan index.
 //!
-//! The design goal is that a scan of several million files stays in Rust as a
-//! compact, cache friendly set of flat arrays. The frontend never receives the
-//! whole index: it asks for the slice it is about to paint.
+//! Kept as flat arrays so a multi-million-file scan stays compact. The
+//! frontend never receives the whole index, only the slice it renders.
 
 use serde::{Deserialize, Serialize};
 
-/// Slice into the shared name arena. Names are stored once, contiguously,
-/// so a `FileRec` stays copyable and small.
+/// Slice into the shared name arena, so `FileRec` stays `Copy` and small.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct NameRef {
     pub off: u32,
@@ -61,7 +59,7 @@ pub mod flags {
     pub const IS_HARDLINK_DUP: u32 = 1 << 3;
     /// Somewhere under a protected system path.
     pub const IS_SYSTEM: u32 = 1 << 4;
-    /// A macOS bundle (`.app`, `.framework`, ...) — shown as one item.
+    /// A macOS bundle (.app, .framework, ...).
     pub const IS_PACKAGE: u32 = 1 << 5;
     /// Directory we could not read (EACCES/EPERM).
     pub const IS_DENIED: u32 = 1 << 6;
@@ -69,12 +67,12 @@ pub mod flags {
     pub const USED_FROM_SPOTLIGHT: u32 = 1 << 7;
     /// Lives inside a package/bundle.
     pub const IN_PACKAGE: u32 = 1 << 8;
-    /// A stand-in row representing a whole bundle as one item. Never a real
-    /// inode — it exists so `Thing.app` ranks as 2 GB instead of 8,000 crumbs.
+    /// Stand-in row for a whole bundle. Not a real inode: it lets an .app
+    /// rank as one item instead of thousands of pieces.
     pub const IS_SYNTHETIC: u32 = 1 << 9;
 }
 
-/// Where a `last_used` timestamp came from.
+/// Origin of a `last_used` timestamp.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum LastUsedSource {
@@ -83,7 +81,7 @@ pub enum LastUsedSource {
     Unknown,
 }
 
-/// One file (never a directory). 72 bytes.
+/// One file. Never a directory.
 #[derive(Clone, Copy, Debug)]
 pub struct FileRec {
     pub name: NameRef,
@@ -115,7 +113,7 @@ impl FileRec {
         }
     }
 
-    /// Best available "last touched" instant, Spotlight first.
+    /// Best available last-touched instant, Spotlight first.
     #[inline]
     pub fn effective_last_used(&self) -> i64 {
         if self.last_used != NO_TIME {
@@ -151,7 +149,7 @@ pub struct DirRec {
     pub agg_alloc: u64,
     pub agg_files: u64,
     pub agg_dirs: u64,
-    /// Most recent usage/modification anywhere in the subtree.
+    /// Most recent usage or modification anywhere in the subtree.
     pub agg_last_used: i64,
     pub agg_mtime: i64,
 }
@@ -184,7 +182,7 @@ impl DirRec {
     }
 }
 
-/// Coarse file family, drives Treemap colour and the `kind:` filter.
+/// Coarse file family. Drives Treemap colour and the `kind:` filter.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[repr(u8)]
@@ -291,8 +289,8 @@ pub fn categorize(ext: &str) -> Category {
     }
 }
 
-/// A `.blend`/`.fbx`-style 3D asset still reads as "3D" in the type table even
-/// though the Treemap paints it with the neutral colour.
+/// 3D assets get their own label in the type table but share the neutral
+/// Treemap colour.
 pub fn category_label_for_ext(ext: &str) -> &'static str {
     match ext {
         "blend" | "blend1" | "fbx" | "obj" | "usd" | "usdz" | "usda" | "usdc" | "abc" | "gltf"
@@ -303,7 +301,7 @@ pub fn category_label_for_ext(ext: &str) -> &'static str {
     }
 }
 
-/// macOS bundle extensions that we treat as a single leaf item.
+/// Bundle extensions treated as a single leaf item.
 pub const PACKAGE_EXTS: &[&str] = &[
     "app",
     "framework",
@@ -345,7 +343,7 @@ pub fn is_package_ext(ext: &str) -> bool {
     PACKAGE_EXTS.contains(&ext)
 }
 
-/// Paths that are part of the OS. Shown, but never nudged toward deletion.
+/// OS paths. Shown, but never suggested for deletion.
 pub const PROTECTED_PREFIXES: &[&str] = &[
     "/System",
     "/usr",
@@ -361,7 +359,7 @@ pub const PROTECTED_PREFIXES: &[&str] = &[
     "/Volumes/Recovery",
 ];
 
-/// The subset above which we hard-block trashing.
+/// The subset that cannot be trashed at all.
 pub const IMMUTABLE_PREFIXES: &[&str] = &["/System", "/usr", "/bin", "/sbin", "/private", "/dev"];
 
 pub fn is_protected_path(path: &str) -> bool {

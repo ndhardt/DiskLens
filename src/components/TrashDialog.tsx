@@ -1,4 +1,5 @@
 import { bytes, unusedFor } from "../lib/format";
+import { useI18n } from "../lib/i18n";
 import type { TrashPreview } from "../lib/types";
 
 interface Props {
@@ -10,12 +11,11 @@ interface Props {
 }
 
 /**
- * Confirmation before anything moves.
- *
- * Deleting is always "move to Trash", never unlink, and the dialog states the
- * size and how long the item has gone untouched — the two facts that decide it.
+ * Confirmation before anything moves. States the size and how long the item has
+ * gone untouched, the two facts the decision turns on.
  */
 export function TrashDialog({ preview, now, busy, onCancel, onConfirm }: Props) {
+  const { t } = useI18n();
   const single = preview.items.length === 1 ? preview.items[0] : null;
   const movable = preview.count - preview.blocked;
   const protectedCount = preview.items.filter((i) => i.protected && !i.immutable).length;
@@ -26,20 +26,22 @@ export function TrashDialog({ preview, now, busy, onCancel, onConfirm }: Props) 
         <div className="modal__body">
           {single ? (
             <>
-              <h2 className="modal__title">Move “{single.name}” to Trash?</h2>
+              <h2 className="modal__title">{t("trash.titleOne", { name: single.name })}</h2>
               <div className="modal__stat num">{bytes(single.size, 1)}</div>
               <div className="modal__text">
                 {single.lastUsed
-                  ? `Last used ${unusedFor(single.lastUsed, now)} ago`
-                  : "Usage date unknown"}
+                  ? t("trash.lastUsed", { v: unusedFor(single.lastUsed, now, t) })
+                  : t("trash.unknownUse")}
               </div>
             </>
           ) : (
             <>
               <h2 className="modal__title">
-                Move {movable.toLocaleString()} item{movable === 1 ? "" : "s"} to Trash?
+                {t("trash.titleMany", { n: movable.toLocaleString() })}
               </h2>
-              <div className="modal__stat num">{bytes(preview.totalSize, 1)} total</div>
+              <div className="modal__stat num">
+                {t("trash.total", { size: bytes(preview.totalSize, 1) })}
+              </div>
               <div className="modal__list">
                 {preview.items.slice(0, 200).map((it) => (
                   <div className="modal__list-row" key={it.path}>
@@ -52,7 +54,7 @@ export function TrashDialog({ preview, now, busy, onCancel, onConfirm }: Props) 
                 {preview.items.length > 200 && (
                   <div className="modal__list-row">
                     <span className="modal__list-name">
-                      …and {(preview.items.length - 200).toLocaleString()} more
+                      {t("trash.andMore", { n: (preview.items.length - 200).toLocaleString() })}
                     </span>
                   </div>
                 )}
@@ -61,27 +63,21 @@ export function TrashDialog({ preview, now, busy, onCancel, onConfirm }: Props) 
           )}
 
           {preview.blocked > 0 && (
-            <div className="modal__note">
-              {preview.blocked} item{preview.blocked === 1 ? "" : "s"} belong to macOS and will be
-              skipped.
-            </div>
+            <div className="modal__note">{t("trash.blocked", { n: preview.blocked })}</div>
           )}
           {protectedCount > 0 && (
-            <div className="modal__note">
-              {protectedCount} item{protectedCount === 1 ? " is" : "s are"} inside a system or
-              shared library folder. Applications may stop working without them.
-            </div>
+            <div className="modal__note">{t("trash.protected", { n: protectedCount })}</div>
           )}
           <div className="modal__text" style={{ marginTop: 10, color: "var(--text-muted)" }}>
-            Items go to the Trash and can be put back from the Finder.
+            {t("trash.recoverable")}
           </div>
         </div>
         <div className="modal__actions">
           <button className="ctl" onClick={onCancel} disabled={busy}>
-            Cancel
+            {t("app.cancel")}
           </button>
           <button className="ctl ctl--danger" onClick={onConfirm} disabled={busy || movable === 0}>
-            {busy ? "Moving…" : "Move to Trash"}
+            {busy ? t("trash.moving") : t("menu.trash")}
           </button>
         </div>
       </div>

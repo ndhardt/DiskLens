@@ -17,10 +17,9 @@ interface Props {
 }
 
 /**
- * A windowed table body: only the rows the viewport covers exist in the DOM.
- *
- * Rows are absolutely positioned inside a spacer of the full height, which
- * keeps the scrollbar honest without paying for a million elements.
+ * Windowed table body: only the rows the viewport covers exist in the DOM.
+ * Rows are absolutely positioned inside a full-height spacer so the scrollbar
+ * stays accurate.
  */
 export function VirtualTable({
   rowHeight,

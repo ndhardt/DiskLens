@@ -1,7 +1,7 @@
 //! Tauri command surface.
 //!
-//! Every command answers with the slice the UI is about to paint. Sorting,
-//! filtering and aggregation all happen here, in Rust, over the resident index.
+//! Each command returns the slice the UI is about to paint. Sorting, filtering
+//! and aggregation happen here, over the resident index.
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -27,9 +27,9 @@ pub struct Page<T> {
     pub rows: Vec<T>,
     pub total: usize,
     pub offset: usize,
-    /// Largest size in the whole selection, for the in-row size bars.
+    /// Largest size in the selection, for the in-row size bars.
     pub max_size: u64,
-    /// Sum over the whole selection, not just this page.
+    /// Sum over the selection, not just this page.
     pub total_size: u64,
 }
 
@@ -226,11 +226,10 @@ pub fn hog_page(
     page_from(ix, &sel, offset, limit, now, drive_total(&state, ix))
 }
 
-/// Row index of `file_id` in the current file-list selection, if it is there.
+/// Row index of `file_id` in the current file-list selection.
 ///
-/// Used to scroll a table to the item the user clicked in the Treemap. The
-/// selection is already cached, so this is a scan over an id list, not a
-/// re-sort.
+/// Lets a table scroll to the item clicked in the Treemap. The selection is
+/// cached, so this scans an id list rather than re-sorting.
 #[tauri::command]
 pub fn file_row_index(
     state: Shared,
@@ -281,7 +280,7 @@ pub fn hog_row_index(
         .iter()
         .position(|&id| id == file_id)
         .or_else(|| {
-            // A bundle's stand-in row may be listed instead of the file itself.
+            // A bundle's stand-in row may be listed instead of the file.
             ix.files
                 .get(file_id as usize)
                 .map(|_| ())
@@ -420,7 +419,7 @@ pub fn item_detail(state: Shared, id: u32, is_dir: bool) -> Option<ItemDetail> {
     }
 }
 
-/// Fresh timestamps for one path, straight from Spotlight/the filesystem.
+/// Fresh timestamps for one path, read on demand.
 #[tauri::command]
 pub fn usage_metadata(path: String) -> UsageMetadata {
     UsageMetadata::resolve(&path)
@@ -444,7 +443,7 @@ pub fn item_paths(state: Shared, ids: Vec<u32>, are_dirs: bool) -> Vec<String> {
         .collect()
 }
 
-/// Where does this file live in the tree? Used to sync Treemap and tables.
+/// The directory holding this file. Syncs the Treemap with the tables.
 #[tauri::command]
 pub fn locate_file(state: Shared, file_id: u32) -> Option<u32> {
     let guard = state.index.read();
@@ -614,6 +613,9 @@ pub fn get_settings(state: Shared) -> Settings {
 #[tauri::command]
 pub fn set_settings(state: Shared, settings: Settings) -> Settings {
     *state.settings.write() = settings.clone();
+    if let Some(dir) = state.config_dir.read().as_ref() {
+        crate::state::save_settings(dir, &settings);
+    }
     state.invalidate_views();
     settings
 }
@@ -626,8 +628,8 @@ pub struct DeniedInfo {
     pub full_disk_access: bool,
 }
 
-/// Directories the scan could not read — the honest signal that Full Disk
-/// Access is missing.
+/// Directories the scan could not read, which usually means Full Disk Access
+/// is missing.
 #[tauri::command]
 pub fn denied_report(state: Shared) -> DeniedInfo {
     let guard = state.index.read();
@@ -649,7 +651,7 @@ pub fn denied_report(state: Shared) -> DeniedInfo {
     }
 }
 
-/// Probe for Full Disk Access by reading a directory only FDA can open.
+/// Probe Full Disk Access by reading a directory only it can open.
 pub fn has_full_disk_access() -> bool {
     std::fs::read_dir("/Library/Application Support/com.apple.TCC").is_ok()
 }

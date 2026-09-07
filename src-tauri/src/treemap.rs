@@ -1,19 +1,17 @@
 //! Squarified treemap layout.
 //!
-//! The layout is computed in Rust and handed to Canvas as a flat array of
-//! rectangles. Nothing here creates DOM nodes, and the recursion stops as soon
-//! as a rectangle is too small to read, so a drive with three million files
-//! still produces a few thousand rectangles.
+//! Computed here and handed to Canvas as a flat rectangle array. Recursion
+//! stops once a rectangle is too small to read, so a drive with millions of
+//! files still yields only a few thousand rectangles.
 
 use serde::Serialize;
 
 use crate::index::ScanIndex;
 use crate::model::*;
 
-/// Below this many square pixels a directory is painted as one block instead of
-/// being opened up.
+/// Below this area a directory is painted as one block instead of opened up.
 const MIN_RECURSE_AREA: f64 = 900.0;
-/// Rectangles smaller than this are dropped entirely — they would be invisible.
+/// Rectangles below this area are dropped as invisible.
 const MIN_EMIT_AREA: f64 = 6.0;
 const MAX_DEPTH: u16 = 12;
 
@@ -47,13 +45,13 @@ pub struct TreemapRect {
     pub w: f32,
     pub h: f32,
     pub id: u32,
-    /// True when `id` refers to a directory rather than a file.
+    /// True when `id` is a directory.
     pub is_dir: bool,
     pub depth: u16,
     pub cat: u8,
     pub size: u64,
     pub name: String,
-    /// A directory drawn as one block because it was too small to open up.
+    /// A directory drawn as one block, too small to open up.
     pub collapsed: bool,
 }
 
@@ -198,8 +196,7 @@ fn place_dir(
         if item.is_dir {
             let can_open = depth < MAX_DEPTH && r.area() >= MIN_RECURSE_AREA && r.w > 4.0 && r.h > 4.0;
             if can_open {
-                // Draw the container itself first so nesting is visible, then
-                // its contents inside a one-pixel border.
+                // Container first, then its contents inside a one-pixel border.
                 out.push(rect_for(ix, item, r, depth, false));
                 place_dir(ix, item.id, r.inset(1.0), depth + 1, logical, max_rects, out);
             } else {
@@ -245,9 +242,8 @@ fn rect_for(ix: &ScanIndex, item: Item, r: Rect, depth: u16, collapsed: bool) ->
     }
 }
 
-/// Bruls/Huizing/van Wijk squarified layout: fill the rectangle row by row
-/// along its shorter side, extending each row while that keeps the aspect
-/// ratios improving.
+/// Bruls/Huizing/van Wijk squarified layout: fill row by row along the shorter
+/// side, extending a row while that improves its aspect ratios.
 fn squarify(items: &[Item], rect: Rect, total: f64, out: &mut Vec<(Item, Rect)>) {
     let mut area_left = rect.area();
     let mut value_left = total;

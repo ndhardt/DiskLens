@@ -1,5 +1,6 @@
 import { bytes, count } from "../../lib/format";
 import type { PagedRows } from "../../lib/hooks";
+import { useI18n } from "../../lib/i18n";
 import type { FileRow, SortSpec } from "../../lib/types";
 import { FileTable, FILE_LIST_COLUMNS } from "../common/FileTable";
 
@@ -40,21 +41,23 @@ export function FileList({
   onGoGlobal,
   width,
 }: Props) {
+  const { t } = useI18n();
   return (
     <div className="pane" style={{ flex: `0 0 ${width}px`, width }}>
       <div className="pane__caption">
-        <span>FILES</span>
+        <span>{t("cap.files")}</span>
         <span className="pane__caption-sep">·</span>
         <span title={folder ?? ""}>{folder ? shorten(folder) : "—"}</span>
         <span className="pane__caption-sep">·</span>
         <span>
-          <b>{count(rows.total)}</b> · <b>{bytes(rows.totalSize, 1)}</b>
+          <b>{t("cap.items", { n: count(rows.total) })}</b> ·{" "}
+          <b>{bytes(rows.totalSize, 1)}</b>
         </span>
         {query && globalMatches != null && globalMatches > rows.total && (
           <>
             <span className="pane__caption-sep">·</span>
             <span className="status__link" onClick={onGoGlobal}>
-              {count(globalMatches)} drive-wide
+              {t("cap.driveWide", { n: count(globalMatches) })}
             </span>
           </>
         )}
@@ -75,13 +78,9 @@ export function FileList({
         empty={
           <div className="empty">
             <div className="empty__title">
-              {query ? "No matches in this folder" : "This folder holds no files directly"}
+              {query ? t("empty.noMatchFolder") : t("empty.noFilesHere")}
             </div>
-            <div>
-              {query
-                ? "Clear the search or look drive-wide in Space Hogs."
-                : "Open a subfolder on the left to see its contents."}
-            </div>
+            <div>{query ? t("empty.lookWide") : t("empty.openSub")}</div>
           </div>
         }
       />

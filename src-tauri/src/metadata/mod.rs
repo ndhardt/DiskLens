@@ -1,10 +1,9 @@
 //! Where "Last Used" comes from.
 //!
-//! macOS records the real thing — the moment a document was last *opened* — in
-//! Spotlight's `kMDItemLastUsedDate`. It is the number that answers "have I
-//! actually touched this in a year?", which `mtime` cannot. When Spotlight has
-//! nothing (the volume is not indexed, or the file is excluded) we fall back to
-//! the filesystem access time and say so in the UI.
+//! Spotlight's `kMDItemLastUsedDate` records when a document was last opened,
+//! which is what answers "have I touched this in a year?" and what `mtime`
+//! cannot. When Spotlight has nothing, fall back to the filesystem access time
+//! and say so in the UI.
 
 pub mod filesystem;
 pub mod spotlight;
@@ -13,7 +12,7 @@ use serde::Serialize;
 
 use crate::model::LastUsedSource;
 
-/// The shape the UI reasons about for one file's timestamps.
+/// One file's timestamps, as the UI reasons about them.
 #[derive(Debug, Clone, Copy, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UsageMetadata {

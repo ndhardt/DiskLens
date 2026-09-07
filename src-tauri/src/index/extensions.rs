@@ -1,4 +1,4 @@
-//! The File Types view: one row per extension, aggregated across the scan.
+//! File Types view: one row per extension, aggregated across the scan.
 
 use serde::{Deserialize, Serialize};
 
@@ -65,7 +65,7 @@ impl ScanIndex {
         let mut aggs: Vec<ExtAgg> = vec![ExtAgg::default(); self.ext_names.len()];
         for (i, f) in self.files.iter().enumerate() {
             if f.has(flags::IS_SYNTHETIC) {
-                continue; // Bundle stand-ins would double-count their contents.
+                continue; // Stand-ins would double-count their contents.
             }
             let a = &mut aggs[f.ext as usize];
             a.files += 1;
