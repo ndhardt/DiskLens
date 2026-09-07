@@ -44,7 +44,8 @@
     "shortDescription": "Fast storage analysis for macOS",
     "longDescription": "DiskLens shows what is using your disk \u2014 by size, by how long it has gone untouched, and both at once.",
     "macOS": {
-      "minimumSystemVersion": "14.0"
+      "minimumSystemVersion": "14.0",
+      "signingIdentity": "-"
     }
   }
 }
