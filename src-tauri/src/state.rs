@@ -549,6 +549,39 @@ mod tests {
     }
 
     #[test]
+    fn settings_round_trip_through_disk() {
+        let dir = std::env::temp_dir().join(format!("disklens-settings-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+
+        // Nothing written yet: fall back to the defaults.
+        assert_eq!(load_settings(&dir).language, "auto");
+
+        let s = Settings {
+            language: "ja".into(),
+            group_bundles: false,
+            ..Default::default()
+        };
+        save_settings(&dir, &s);
+
+        let back = load_settings(&dir);
+        assert_eq!(back.language, "ja");
+        assert!(!back.group_bundles);
+        assert_eq!(back.size_basis, SizeBasis::Allocated);
+
+        // A file written by an older build, missing most keys, must still load.
+        std::fs::write(dir.join("settings.json"), r#"{"language":"en"}"#).unwrap();
+        let partial = load_settings(&dir);
+        assert_eq!(partial.language, "en");
+        assert!(partial.group_bundles, "missing keys fall back to the default");
+
+        // Corrupt input must not panic or wipe the app's ability to start.
+        std::fs::write(dir.join("settings.json"), "{not json").unwrap();
+        assert_eq!(load_settings(&dir).language, "auto");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn cache_keys_separate_distinct_views() {
         let a = cache_key(1, "hogs", 0, Some(HogMode::LargestFirst), QuickFilter::All, SortSpec::default(), "", true);
         let b = cache_key(1, "hogs", 0, Some(HogMode::LongestUnused), QuickFilter::All, SortSpec::default(), "", true);
