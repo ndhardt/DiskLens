@@ -1,5 +1,4 @@
 import { invoke } from "@tauri-apps/api/core";
-import { mockApi } from "./mock";
 import type {
   CleanupGroup,
   DeniedInfo,
@@ -108,11 +107,18 @@ const realApi = {
   deniedReport: () => invoke<DeniedInfo>("denied_report"),
 };
 
-/** `npm run dev` in a plain browser gets the fixture harness; the app gets IPC. */
-const inTauri =
+export type Api = typeof realApi;
+
+export const inTauri =
   typeof window !== "undefined" &&
   "__TAURI_INTERNALS__" in (window as unknown as Record<string, unknown>);
 
-export const api: typeof realApi = inTauri
-  ? realApi
-  : (mockApi as unknown as typeof realApi);
+/**
+ * The IPC surface. Mutable so `npm run dev` in a plain browser can swap in the
+ * fixture harness; a production build never loads it.
+ */
+export const api: Api = { ...realApi };
+
+export function installApi(impl: Partial<Api>) {
+  Object.assign(api, impl);
+}

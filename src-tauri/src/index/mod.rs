@@ -484,7 +484,7 @@ mod tests {
     fn protected_paths_match_prefixes_only() {
         assert!(is_protected_path("/System/Library/Foo"));
         assert!(is_protected_path("/usr"));
-        assert!(!is_protected_path("/Users/user"));
+        assert!(!is_protected_path("/Users/someone"));
         assert!(!is_protected_path("/usrlocal"));
         assert!(is_immutable_path("/private/var/db"));
         assert!(!is_immutable_path("/Library/Caches"));
