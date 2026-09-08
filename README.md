@@ -1,6 +1,6 @@
 # DiskLens
 
-macOS 向けディスク使用量アナライザ。
+macOS 向けディスク使用量アナライザー
 
 ![DiskLens](docs/screenshot.jpg)
 
