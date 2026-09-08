@@ -2,7 +2,6 @@
 
 macOS 向けディスク使用量アナライザー
 
-image by v1.00
 ![DiskLens](docs/screenshot.jpg)
 
 [**ダウンロード**](https://github.com/ndhardt/DiskLens/releases/latest)
