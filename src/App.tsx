@@ -552,9 +552,9 @@ export default function App() {
     }
     if (typing) return;
 
-    if (meta && ["1", "2", "3"].includes(e.key)) {
+    if (meta && ["1", "2", "3", "4"].includes(e.key)) {
       e.preventDefault();
-      setMode((["tree", "hogs", "types"] as Mode[])[Number(e.key) - 1]);
+      setMode((["tree", "hogs", "types", "cleanup"] as Mode[])[Number(e.key) - 1]);
       return;
     }
     if (!sel.ids.size) return;
