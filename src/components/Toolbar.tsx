@@ -50,10 +50,10 @@ export function Toolbar({
   const placeholder = mode === "types" ? t("search.types") : t("search.files");
 
   return (
-    <div className="toolbar">
+    <div className="toolbar" data-tauri-drag-region="deep">
       <div className="toolbar__gutter" />
 
-      <div className="volume-select" ref={popRef}>
+      <div className="volume-select" ref={popRef} data-tauri-drag-region="false">
         <button
           className="ctl volume-select__button"
           onClick={() => setOpen((o) => !o)}
@@ -117,7 +117,7 @@ export function Toolbar({
 
       <div className="toolbar__spacer" />
 
-      <div className="search">
+      <div className="search" data-tauri-drag-region="false">
         <span className="search__icon">
           <IconSearch />
         </span>

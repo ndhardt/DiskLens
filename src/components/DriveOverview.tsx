@@ -22,7 +22,7 @@ export function DriveOverview({ volume, summary, progress }: Props) {
   const fill = scanning ? scannedPct : usedPct;
 
   return (
-    <div className="drive">
+    <div className="drive" data-tauri-drag-region="deep">
       <div className="drive__id">
         <div className="drive__name">{volume?.name ?? summary?.name ?? t("vol.none")}</div>
         <div className="drive__sub num">

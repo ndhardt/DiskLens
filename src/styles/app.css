@@ -97,16 +97,6 @@ input {
   padding: 8px 12px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-panel);
-  -webkit-app-region: drag;
-}
-
-/* Only controls opt out; the gaps stay draggable. */
-.toolbar button,
-.toolbar input,
-.toolbar select,
-.toolbar .search,
-.toolbar .volume-select {
-  -webkit-app-region: no-drag;
 }
 
 /* Room for the traffic lights. */
