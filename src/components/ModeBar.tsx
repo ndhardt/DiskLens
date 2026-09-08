@@ -1,4 +1,4 @@
-import { count } from "../lib/format";
+import { bytes, count } from "../lib/format";
 import { useI18n, type Key } from "../lib/i18n";
 import type { HogMode, Mode, QuickFilter } from "../lib/types";
 
@@ -6,6 +6,7 @@ const TABS: { id: Mode; key: Key }[] = [
   { id: "tree", key: "mode.tree" },
   { id: "hogs", key: "mode.hogs" },
   { id: "types", key: "mode.types" },
+  { id: "cleanup", key: "mode.cleanup" },
 ];
 
 export const HOG_MODES: { id: HogMode; key: Key }[] = [
@@ -39,6 +40,10 @@ interface Props {
   onCollapseAll: () => void;
   treemapVisible: boolean;
   onToggleTreemap: () => void;
+  cleanupCount: number;
+  cleanupBytes: number;
+  cleanupBusy: boolean;
+  onCleanup: () => void;
 }
 
 export function ModeBar({
@@ -53,6 +58,10 @@ export function ModeBar({
   onCollapseAll,
   treemapVisible,
   onToggleTreemap,
+  cleanupCount,
+  cleanupBytes,
+  cleanupBusy,
+  onCleanup,
 }: Props) {
   const { t } = useI18n();
   return (
@@ -116,6 +125,22 @@ export function ModeBar({
               ))}
             </div>
           </>
+        )}
+
+        {mode === "cleanup" && (
+          <button
+            className="ctl ctl--danger"
+            style={{ height: 24 }}
+            disabled={cleanupCount === 0 || cleanupBusy}
+            onClick={onCleanup}
+          >
+            {cleanupBusy
+              ? t("clean.running")
+              : `${t("clean.run")} · ${t("clean.selected", {
+                  n: count(cleanupCount),
+                  size: bytes(cleanupBytes, 1),
+                })}`}
+          </button>
         )}
 
         <button

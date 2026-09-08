@@ -719,6 +719,79 @@ export const mockApi = {
     });
   },
 
+  cleanupGroups: () => {
+    const mk = (id: string, safety: "safe" | "review", ids: number[]) => ({
+      id,
+      safety,
+      items: ids.length,
+      files: ids.length,
+      size: ids.reduce((a, i) => a + Math.max(files[i].alloc, files[i].size), 0),
+      truncated: false,
+    });
+    const inDir = (name: string) =>
+      files.filter((f) => dirPath(f.parent).includes(name)).map((f) => f.id);
+    const old = (days: number, min = 0) =>
+      files
+        .filter(
+          (f) =>
+            !syntheticIds.has(f.id) &&
+            f.lastUsed != null &&
+            (NOW - f.lastUsed) / DAY >= days &&
+            Math.max(f.alloc, f.size) >= min,
+        )
+        .map((f) => f.id);
+    return ok(
+      [
+        mk("appCaches", "safe", inDir("/Caches")),
+        mk("largeUnused", "review", old(365, 5 * GB)),
+        mk("oldDownloads", "review", inDir("/Downloads").filter((i) => old(180).includes(i))),
+      ].filter((g) => g.items > 0),
+    );
+  },
+  cleanupGroupPage: (group: string, offset: number, limit: number) => {
+    const inDir = (name: string) =>
+      files.filter((f) => dirPath(f.parent).includes(name)).map((f) => f.id);
+    const old = (days: number, min = 0) =>
+      files
+        .filter(
+          (f) =>
+            !syntheticIds.has(f.id) &&
+            f.lastUsed != null &&
+            (NOW - f.lastUsed) / DAY >= days &&
+            Math.max(f.alloc, f.size) >= min,
+        )
+        .map((f) => f.id);
+    const map: Record<string, number[]> = {
+      appCaches: inDir("/Caches"),
+      largeUnused: old(365, 5 * GB),
+      oldDownloads: inDir("/Downloads").filter((i) => old(180).includes(i)),
+    };
+    const ids = (map[group] ?? []).sort(
+      (a, b) => Math.max(files[b].alloc, files[b].size) - Math.max(files[a].alloc, files[a].size),
+    );
+    return ok(pageOf(ids, offset, limit));
+  },
+  cleanupSelection: (groups: string[]) => {
+    const inDir = (name: string) =>
+      files.filter((f) => dirPath(f.parent).includes(name)).map((f) => f.id);
+    const old = (days: number, min = 0) =>
+      files
+        .filter(
+          (f) =>
+            !syntheticIds.has(f.id) &&
+            f.lastUsed != null &&
+            (NOW - f.lastUsed) / DAY >= days &&
+            Math.max(f.alloc, f.size) >= min,
+        )
+        .map((f) => f.id);
+    const map: Record<string, number[]> = {
+      appCaches: inDir("/Caches"),
+      largeUnused: old(365, 5 * GB),
+      oldDownloads: inDir("/Downloads").filter((i) => old(180).includes(i)),
+    };
+    return ok(groups.flatMap((g) => (map[g] ?? []).map((id) => ({ id, isDir: false }))));
+  },
+
   itemDetail: (id: number, isDir: boolean) => {
     if (isDir) {
       const d = dirs[id];

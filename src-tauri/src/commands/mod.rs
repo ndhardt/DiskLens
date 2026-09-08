@@ -6,7 +6,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use tauri::{AppHandle, State};
 
 use crate::index::directories::{TreeRow, TreeSort};
@@ -301,6 +301,148 @@ pub fn extension_table(state: Shared, sort: ExtSort) -> Vec<ExtRow> {
     ix.extension_table(sort, total)
 }
 
+// ---------------------------------------------------------------- cleanup
+
+fn home_dir() -> String {
+    std::env::var("HOME").unwrap_or_else(|_| "/".into())
+}
+
+/// Group the cleanup candidates. Cached on the state so expanding a group or
+/// building a Trash list does not re-evaluate every rule.
+fn with_cleanup<R>(state: &AppState, f: impl FnOnce(&[crate::cleanup::Group]) -> R) -> R {
+    let gen = state.generation.load(std::sync::atomic::Ordering::SeqCst);
+    let mut slot = state.cleanup.lock();
+    if slot.0 != gen {
+        let guard = state.index.read();
+        let groups = match guard.as_ref() {
+            Some(ix) => crate::cleanup::evaluate(ix, &home_dir(), state::now_secs()),
+            None => Vec::new(),
+        };
+        *slot = (gen, groups);
+    }
+    f(&slot.1)
+}
+
+#[tauri::command]
+pub fn cleanup_groups(state: Shared) -> Vec<crate::cleanup::GroupSummary> {
+    with_cleanup(&state, |gs| gs.iter().map(|g| g.summary()).collect())
+}
+
+/// The entries inside one group, biggest first.
+#[tauri::command]
+pub fn cleanup_group_page(
+    state: Shared,
+    group: String,
+    offset: usize,
+    limit: usize,
+) -> Page<FileRow> {
+    let refs: Vec<ItemRef> =
+        with_cleanup(&state, |gs| match gs.iter().find(|g| g.id == group) {
+            Some(g) => g.items.clone(),
+            None => Vec::new(),
+        });
+    let guard = state.index.read();
+    let Some(ix) = guard.as_ref() else {
+        return empty_page(offset);
+    };
+    let now = state::now_secs();
+    let drive = drive_total(&state, ix);
+
+    let mut sized: Vec<(u64, ItemRef)> = refs
+        .into_iter()
+        .map(|r| (cleanup_item_size(ix, r), r))
+        .collect();
+    sized.sort_unstable_by_key(|(size, _)| std::cmp::Reverse(*size));
+
+    let total = sized.len();
+    let max_size = sized.first().map(|(s, _)| *s).unwrap_or(0);
+    let total_size = sized.iter().map(|(s, _)| *s).sum();
+    let start = offset.min(total);
+    let end = (start + limit).min(total);
+
+    Page {
+        rows: sized[start..end]
+            .iter()
+            .enumerate()
+            .map(|(i, (_, r))| cleanup_row(ix, *r, (start + i + 1) as u32, now, drive))
+            .collect(),
+        total,
+        offset: start,
+        max_size,
+        total_size,
+    }
+}
+
+/// Item references for the chosen groups, ready for the Trash confirmation.
+#[tauri::command]
+pub fn cleanup_selection(state: Shared, groups: Vec<String>) -> Vec<ItemRef> {
+    with_cleanup(&state, |gs| {
+        gs.iter()
+            .filter(|g| groups.iter().any(|s| s == g.id))
+            .flat_map(|g| g.items.iter().copied())
+            .collect()
+    })
+}
+
+fn cleanup_item_size(ix: &crate::index::ScanIndex, r: ItemRef) -> u64 {
+    if r.is_dir {
+        let d = &ix.dirs[r.id as usize];
+        d.agg_alloc.max(d.agg_size)
+    } else {
+        let f = &ix.files[r.id as usize];
+        f.alloc.max(f.size)
+    }
+}
+
+fn cleanup_row(
+    ix: &crate::index::ScanIndex,
+    r: ItemRef,
+    rank: u32,
+    now: i64,
+    drive: u64,
+) -> FileRow {
+    if !r.is_dir {
+        return files::make_row(ix, r.id, rank, now, drive);
+    }
+    let d = &ix.dirs[r.id as usize];
+    let path = ix.dir_path(r.id);
+    let size = d.agg_alloc.max(d.agg_size);
+    FileRow {
+        id: r.id,
+        rank,
+        name: ix.dir_name(r.id).to_string(),
+        size: d.agg_size,
+        alloc: d.agg_alloc,
+        last_used: files::opt_time(d.agg_last_used),
+        last_used_source: LastUsedSource::FileSystemAccessTime,
+        accessed: files::opt_time(d.atime),
+        modified: files::opt_time(d.agg_mtime),
+        created: files::opt_time(d.btime),
+        ext: String::new(),
+        kind: "Folder",
+        category: Category::Other,
+        cleanup_score: 0,
+        disk_pct: if drive > 0 {
+            (size as f64 / drive as f64 * 100.0) as f32
+        } else {
+            0.0
+        },
+        cloud: d.has(flags::IS_CLOUD),
+        protected: is_protected_path(&path),
+        immutable: is_immutable_path(&path),
+        is_dir: true,
+        is_package: d.has(flags::IS_PACKAGE),
+        dir_path: parent_of(&path),
+    }
+}
+
+fn parent_of(path: &str) -> String {
+    match path.rfind('/') {
+        Some(0) | None => "/".to_string(),
+        Some(i) => path[..i].to_string(),
+    }
+}
+
 // ---------------------------------------------------------------- treemap
 
 #[tauri::command]
@@ -497,13 +639,6 @@ pub struct TrashPreview {
     pub count: usize,
     pub total_size: u64,
     pub blocked: usize,
-}
-
-#[derive(Deserialize, Clone, Copy, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct ItemRef {
-    pub id: u32,
-    pub is_dir: bool,
 }
 
 #[tauri::command]

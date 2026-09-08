@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { mockApi } from "./mock";
 import type {
+  CleanupGroup,
   DeniedInfo,
   DriveSummary,
   ExtRow,
@@ -77,6 +78,12 @@ const realApi = {
   ) => invoke<number | null>("hog_row_index", { mode, quick, query, sort, fileId }),
 
   extensionTable: (sort: ExtSort) => invoke<ExtRow[]>("extension_table", { sort }),
+
+  cleanupGroups: () => invoke<CleanupGroup[]>("cleanup_groups"),
+  cleanupGroupPage: (group: string, offset: number, limit: number) =>
+    invoke<Page<FileRow>>("cleanup_group_page", { group, offset, limit }),
+  cleanupSelection: (groups: string[]) =>
+    invoke<ItemRef[]>("cleanup_selection", { groups }),
 
   treemap: (rootDir: number, width: number, height: number, maxRects: number) =>
     invoke<TreemapLayout>("treemap", { rootDir, width, height, maxRects }),

@@ -35,6 +35,7 @@ import { FileList } from "./components/tree/FileList";
 import { TreeTable } from "./components/tree/TreeTable";
 import { Treemap } from "./components/treemap/Treemap";
 import { FileTypes } from "./components/types/FileTypes";
+import { Cleanup, useCleanupGroups, useCleanupRows } from "./components/cleanup/Cleanup";
 import { IconTreemap } from "./components/common/Icons";
 import { CATEGORY_COLOR, categoryLabel } from "./lib/format";
 import { I18nContext, makeT, resolveLang, type LangSetting } from "./lib/i18n";
@@ -102,6 +103,11 @@ export default function App() {
   const [trash, setTrash] = useState<TrashPreview | null>(null);
   const [trashBusy, setTrashBusy] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const [cleanupPicked, setCleanupPicked] = useState<Set<string>>(new Set());
+  const [cleanupOpen, setCleanupOpen] = useState<string | null>(null);
+  const [cleanupBusy, setCleanupBusy] = useState(false);
+  const [cleanupTouched, setCleanupTouched] = useState(false);
 
   const [showTreemap, setShowTreemap] = useState(true);
   const [treemapH, setTreemapH] = useState(236);
@@ -200,6 +206,39 @@ export default function App() {
   );
 
   const activeRows = mode === "hogs" ? hogRows : fileRows;
+
+  const cleanupGroups = useCleanupGroups(generation, !!summary?.hasIndex);
+  const cleanupRows = useCleanupRows(generation, mode === "cleanup" ? cleanupOpen : null);
+
+  // Regenerable groups start selected; the user's own files never do. A manual
+  // change sticks, so re-running the rules does not undo a deliberate choice.
+  useEffect(() => {
+    if (cleanupTouched) return;
+    setCleanupPicked(
+      new Set(cleanupGroups.filter((g) => g.safety === "safe").map((g) => g.id)),
+    );
+    setCleanupOpen((cur) => cur ?? cleanupGroups[0]?.id ?? null);
+  }, [cleanupGroups, cleanupTouched]);
+
+  const cleanupTotals = useMemo(() => {
+    const picked = cleanupGroups.filter((g) => cleanupPicked.has(g.id));
+    return {
+      count: picked.reduce((a, g) => a + g.items, 0),
+      bytes: picked.reduce((a, g) => a + g.size, 0),
+    };
+  }, [cleanupGroups, cleanupPicked]);
+
+  const runCleanup = useEvent(async () => {
+    const ids = cleanupGroups.filter((g) => cleanupPicked.has(g.id)).map((g) => g.id);
+    if (!ids.length) return;
+    setCleanupBusy(true);
+    try {
+      const items = await api.cleanupSelection(ids);
+      await askTrash(items);
+    } finally {
+      setCleanupBusy(false);
+    }
+  });
 
   // ---- selection ---------------------------------------------------------
   const clearSelection = useCallback(() => {
@@ -303,6 +342,13 @@ export default function App() {
       if (failed.length) {
         setMenu(null);
         console.warn("Some items could not be moved to the Trash:", failed);
+      }
+      // A cleanup empties whole folders the index still describes, so every
+      // number on screen would be stale. Re-scan rather than show old totals.
+      if (mode === "cleanup" && report.moved > 0) {
+        setCleanupOpen(null);
+        setCleanupTouched(false);
+        doScan();
       }
     } finally {
       setTrashBusy(false);
@@ -628,6 +674,10 @@ export default function App() {
         }}
         treemapVisible={showTreemap}
         onToggleTreemap={() => setShowTreemap((s) => !s)}
+        cleanupCount={cleanupTotals.count}
+        cleanupBytes={cleanupTotals.bytes}
+        cleanupBusy={cleanupBusy}
+        onCleanup={() => void runCleanup()}
       />
 
       <div className="app__main" ref={mainRef}>
@@ -698,6 +748,29 @@ export default function App() {
             focusIndex={focusIndex}
             query={query}
             hasIndex={hasIndex}
+          />
+        )}
+
+        {mode === "cleanup" && (
+          <Cleanup
+            groups={cleanupGroups}
+            selected={cleanupPicked}
+            onToggle={(id) => {
+              setCleanupTouched(true);
+              setCleanupPicked((prev) => {
+                const next = new Set(prev);
+                if (next.has(id)) next.delete(id);
+                else next.add(id);
+                return next;
+              });
+            }}
+            active={cleanupOpen}
+            onActive={setCleanupOpen}
+            rows={cleanupRows}
+            onContext={fileMenu}
+            onReveal={activate}
+            now={now}
+            width={fileWidth}
           />
         )}
 

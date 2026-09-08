@@ -3,6 +3,7 @@
 //! Rust owns the scan index; the UI requests only the rows it paints. That is
 //! what keeps a multi-million-file drive responsive.
 
+pub mod cleanup;
 pub mod commands;
 pub mod finder;
 pub mod index;
@@ -59,6 +60,9 @@ pub fn run() {
             commands::file_row_index,
             commands::hog_row_index,
             commands::extension_table,
+            commands::cleanup_groups,
+            commands::cleanup_group_page,
+            commands::cleanup_selection,
             commands::treemap,
             commands::item_detail,
             commands::usage_metadata,

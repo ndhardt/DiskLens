@@ -20,6 +20,7 @@ macOS 向けディスク使用量アナライザー
 | 容量ランキング | 階層を無視した全体順位 |
 | ファイル種別 | 拡張子別の集計 |
 | Treemap | 容量を面積で表示。表と選択が相互に同期 |
+| クリーンアップ | 削除候補をまとめて提示 |
 
 Treemap は常時表示、非表示切り替え可。Tree とファイル一覧の分割、Treemap との境界はいずれもドラッグでリサイズ。
 
@@ -45,6 +46,27 @@ Treemap は常時表示、非表示切り替え可。Tree とファイル一覧�
 Video / Images / Audio / Archive / AI Model / Documents / Code / System / Other
 
 カテゴリ名は日本語 UI でも英語表記。
+
+## クリーンアップ
+
+削除候補を 2 種類に分けて提示します。**再生成される**ものだけが既定で選択され、
+**要確認**（ユーザー自身のファイル）が自動選択されることはありません。
+
+| 種別 | 項目 | 対象 |
+|---|---|---|
+| 再生成される | Xcode のビルドデータ | `DerivedData` / `iOS DeviceSupport` / `CoreSimulator/Caches` |
+| 再生成される | パッケージマネージャのキャッシュ | `.npm/_cacache` `.cache` `.gradle/caches` `.cargo/registry/cache` `.pnpm-store` `Caches/{Homebrew,pip,Yarn,go-build,ms-playwright}` |
+| 再生成される | アプリのキャッシュ | `~/Library/Caches` の直下 |
+| 再生成される | ログ | `~/Library/Logs` の直下 |
+| 要確認 | 大容量かつ長期間未使用 | 5 GB 以上、1年以上未使用 |
+| 要確認 | 古いダウンロード | `~/Downloads`、6か月以上未使用 |
+| 要確認 | インストーラ | `.dmg` `.pkg` `.xip` `.iso`、3か月以上未使用 |
+
+- 1 項目は 1 グループにしか属さない（合計が二重計上されない）
+- パス接頭辞と `IS_SYSTEM` フラグの両方でシステム領域を除外
+- 最終使用日時が不明なファイルは「長期間未使用」に含めない
+- 1 グループあたり最大 4,000 件
+- 実行すると通常の削除確認ダイアログを経由し、完了後に自動で再スキャン
 
 ## 最終使用日時
 
@@ -152,6 +174,7 @@ Tauri 2 / React / TypeScript / Rust / Canvas 2D
 src-tauri/src/
   model.rs        型定義、カテゴリ、保護パス
   index/          集計、ツリー展開、ランキング、拡張子集計
+  cleanup.rs      削除候補のルール
   scanner/        DiskScanner trait、standard.rs、macos.rs
   metadata/       spotlight.rs、filesystem.rs
   query.rs        検索構文

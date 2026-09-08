@@ -294,7 +294,20 @@ export type QuickFilter =
   | "unused1y"
   | "unused2y";
 
-export type Mode = "tree" | "hogs" | "types";
+export type Mode = "tree" | "hogs" | "types" | "cleanup";
+
+export type Safety = "safe" | "review";
+
+export interface CleanupGroup {
+  id: string;
+  safety: Safety;
+  /** Top-level entries that would be moved. */
+  items: number;
+  /** Files below them, for context. */
+  files: number;
+  size: number;
+  truncated: boolean;
+}
 
 export interface ItemRef {
   id: number;

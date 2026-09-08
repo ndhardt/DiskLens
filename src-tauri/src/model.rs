@@ -72,7 +72,14 @@ pub mod flags {
     pub const IS_SYNTHETIC: u32 = 1 << 9;
 }
 
-/// Origin of a `last_used` timestamp.
+/// A file or directory in the index, as the UI refers to it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ItemRef {
+    pub id: u32,
+    pub is_dir: bool,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum LastUsedSource {

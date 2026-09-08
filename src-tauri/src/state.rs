@@ -141,6 +141,8 @@ pub struct AppState {
     pub settings: RwLock<Settings>,
     pub cancel: Mutex<Option<Arc<AtomicBool>>>,
     pub generation: AtomicU64,
+    /// Cleanup groups for the current scan generation.
+    pub cleanup: Mutex<(u64, Vec<crate::cleanup::Group>)>,
     pub hog_cache: Mutex<ViewCache>,
     pub file_cache: Mutex<ViewCache>,
     pub volumes: RwLock<Vec<crate::volumes::VolumeInfo>>,
@@ -155,6 +157,7 @@ impl Default for AppState {
             settings: RwLock::new(Settings::default()),
             cancel: Mutex::new(None),
             generation: AtomicU64::new(0),
+            cleanup: Mutex::new((u64::MAX, Vec::new())),
             hog_cache: Mutex::new(ViewCache::default()),
             file_cache: Mutex::new(ViewCache::default()),
             volumes: RwLock::new(Vec::new()),
